@@ -7,6 +7,7 @@ import path from 'path';
 import readline from 'readline';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { select } from '@inquirer/prompts';
 
 import { ConfigManager } from './config/manager.js';
 import { ProjectDetector } from './detector/project.js';
@@ -29,10 +30,58 @@ import { AppConfig, ExecutionOptions, SessionData } from './types/index.js';
 const execAsync = promisify(exec);
 const program = new Command();
 
+const SLASH_COMMANDS_LIST = [
+  '/help',
+  '/model',
+  '/theme',
+  '/lang',
+  '/sessions',
+  '/switch',
+  '/new',
+  '/session',
+  '/plan',
+  '/diff',
+  '/undo',
+  '/config',
+  '/clear',
+  '/exit',
+  '/quit',
+];
+
+function slashCompleter(line: string): [string[], string] {
+  if (line.startsWith('/theme ')) {
+    const sub = line.slice(7);
+    const themes = ['cyber', 'dracula', 'nord', 'monokai', 'matrix', 'sunset'];
+    const hits = themes.filter((t) => t.startsWith(sub)).map((t) => `/theme ${t}`);
+    return [hits.length ? hits : themes.map((t) => `/theme ${t}`), line];
+  }
+
+  if (line.startsWith('/lang ')) {
+    const sub = line.slice(6);
+    const langs = ['en', 'vi'];
+    const hits = langs.filter((l) => l.startsWith(sub)).map((l) => `/lang ${l}`);
+    return [hits.length ? hits : langs.map((l) => `/lang ${l}`), line];
+  }
+
+  if (line.startsWith('/')) {
+    const hits = SLASH_COMMANDS_LIST.filter((cmd) => cmd.startsWith(line));
+    return [hits.length ? hits : SLASH_COMMANDS_LIST, line];
+  }
+
+  if (line.startsWith('!')) {
+    const sysCmds = ['! git status', '! git diff', '! git log', '! ls', '! npm test', '! mix test'];
+    const hits = sysCmds.filter((c) => c.startsWith(line));
+    return [hits.length ? hits : sysCmds, line];
+  }
+
+  return [[], line];
+}
+
 function promptUser(promptText: string): Promise<string> {
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
+    completer: slashCompleter,
   });
 
   return new Promise((resolve) => {
@@ -315,6 +364,76 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
       } else {
         continue;
       }
+    }
+
+    // Interactive Slash Command Picker when user enters '/' alone
+    if (action === '/') {
+      const chosen = await select({
+        message: isEn ? 'Select a command:' : 'Chọn lệnh cần dùng:',
+        choices: [
+          { name: `${chalk.cyan('/help')}      ${chalk.gray(isEn ? 'Display command reference' : 'Xem trợ giúp tra cứu lệnh')}`, value: '/help' },
+          { name: `${chalk.cyan('/model')}     ${chalk.gray(isEn ? 'Switch AI models (Claude 5.5, GPT-6...)' : 'Đổi AI model cho từng vai trò')}`, value: '/model' },
+          { name: `${chalk.cyan('/theme')}     ${chalk.gray(isEn ? 'Select terminal color theme' : 'Đổi giao diện màu sắc Terminal')}`, value: '/theme' },
+          { name: `${chalk.cyan('/lang')}      ${chalk.gray(isEn ? 'Switch interface language' : 'Đổi ngôn ngữ giao diện (en / vi)')}`, value: '/lang' },
+          { name: `${chalk.cyan('/sessions')}  ${chalk.gray(isEn ? 'List all saved sessions' : 'Xem danh sách các phiên làm việc')}`, value: '/sessions' },
+          { name: `${chalk.cyan('/new')}       ${chalk.gray(isEn ? 'Create a clean session' : 'Tạo phiên làm việc mới')}`, value: '/new' },
+          { name: `${chalk.cyan('/switch')}    ${chalk.gray(isEn ? 'Switch to another session' : 'Chuyển sang phiên làm việc khác')}`, value: '/switch' },
+          { name: `${chalk.cyan('/session')}   ${chalk.gray(isEn ? 'View active session details' : 'Xem chi tiết phiên hiện tại')}`, value: '/session' },
+          { name: `${chalk.cyan('/plan')}      ${chalk.gray(isEn ? 'Generate architectural plan only' : 'Chỉ lập kế hoạch, không sửa file')}`, value: '/plan' },
+          { name: `${chalk.cyan('/diff')}      ${chalk.gray(isEn ? 'Preview uncommitted git changes' : 'Xem các thay đổi git hiện tại')}`, value: '/diff' },
+          { name: `${chalk.cyan('/undo')}      ${chalk.gray(isEn ? 'Rollback working tree to checkpoint' : 'Khôi phục code về checkpoint an toàn')}`, value: '/undo' },
+          { name: `${chalk.cyan('/config')}    ${chalk.gray(isEn ? 'Display active configuration' : 'Xem cấu hình hiện tại')}`, value: '/config' },
+          { name: `${chalk.cyan('/clear')}     ${chalk.gray(isEn ? 'Clear terminal screen' : 'Xóa sạch màn hình')}`, value: '/clear' },
+          { name: `${chalk.cyan('/exit')}      ${chalk.gray(isEn ? 'Exit Duo shell' : 'Thoát chương trình')}`, value: '/exit' },
+        ],
+      });
+
+      if (chosen === '/plan') {
+        const planTask = await promptUser(chalk.bold.cyan(isEn ? 'Enter task for plan-only > ' : 'Nhập yêu cầu chỉ lập kế hoạch > '));
+        if (planTask.trim()) {
+          await runWorkflow(planTask.trim(), { planOnly: true }, config, sessionManager, currentSession);
+        }
+        continue;
+      }
+
+      if (chosen === '/new') {
+        const sessionName = await promptUser(chalk.bold.cyan(isEn ? 'New session name > ' : 'Tên phiên mới > '));
+        if (sessionName.trim()) {
+          action = `/new ${sessionName.trim()}`;
+        } else {
+          continue;
+        }
+      }
+
+      if (chosen === '/switch') {
+        await printSessionsList(sessionManager);
+        const switchTarget = await promptUser(chalk.bold.cyan(isEn ? 'Switch to session ID or name > ' : 'Nhập ID hoặc tên phiên cần chuyển > '));
+        if (switchTarget.trim()) {
+          action = `/switch ${switchTarget.trim()}`;
+        } else {
+          continue;
+        }
+      }
+
+      action = chosen;
+    }
+
+    // Fuzzy command suggestion for unrecognized slash command
+    if (action.startsWith('/') && !SLASH_COMMANDS_LIST.includes(action.split(' ')[0])) {
+      const typedCmd = action.split(' ')[0];
+      const match = SLASH_COMMANDS_LIST.find((c) => c.startsWith(typedCmd) || c.includes(typedCmd.replace('/', '')));
+      if (match) {
+        console.log(chalk.yellow(isEn 
+          ? `Unknown command '${typedCmd}'. Did you mean: ${chalk.bold.cyan(match)}?` 
+          : `Lệnh '${typedCmd}' không đúng. Có phải bạn muốn gõ: ${chalk.bold.cyan(match)}?`
+        ));
+      } else {
+        console.log(chalk.gray(isEn 
+          ? `Type ${chalk.cyan('/')} or press ${chalk.cyan('Tab')} to view available commands.` 
+          : `Gõ ${chalk.cyan('/')} hoặc nhấn ${chalk.cyan('Tab')} để xem danh sách lệnh gợi ý.`
+        ));
+      }
+      continue;
     }
 
     if (action === '/exit' || action === '/quit') {
