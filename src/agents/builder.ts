@@ -4,6 +4,7 @@ import { LLMProvider } from '../providers/base.js';
 import { DAGStep } from '../types/index.js';
 import { ContextSlicer } from '../core/slicer.js';
 import { DiffEngine } from '../core/diff-engine.js';
+import { ActivityLogger } from '../core/monitor.js';
 
 const execAsync = promisify(exec);
 
@@ -94,7 +95,10 @@ Nếu tạo file mới hoàn toàn, dùng khối:
           lastError = res.error || 'Áp dụng diff thất bại.';
           break;
         }
-        if (res.patchPreview) patchPreviews.push(res.patchPreview);
+        if (res.patchPreview) {
+          patchPreviews.push(res.patchPreview);
+          await ActivityLogger.log('diff', `Đã sửa đổi: ${block.file}`, res.patchPreview);
+        }
         if (!modifiedFiles.includes(block.file)) modifiedFiles.push(block.file);
       }
 
@@ -103,7 +107,9 @@ Nếu tạo file mới hoàn toàn, dùng khối:
       // 3. Verification Command (Self-Healing Loop)
       if (step.verification_cmd) {
         try {
+          await ActivityLogger.log('test', `Đang chạy: ${step.verification_cmd}`);
           await execAsync(step.verification_cmd, { cwd });
+          await ActivityLogger.log('test', `Kiểm tra thành công (PASS): ${step.verification_cmd}`);
           return {
             success: true,
             modifiedFiles,
@@ -114,6 +120,7 @@ Nếu tạo file mới hoàn toàn, dùng khối:
           const stderr = cmdError.stderr || cmdError.stdout || cmdError.message;
           const truncatedLog = stderr.split('\n').slice(-30).join('\n');
           lastError = `Lệnh kiểm tra [${step.verification_cmd}] thất bại:\n${truncatedLog}`;
+          await ActivityLogger.log('test', `Kiểm tra thất bại (FAIL): ${step.verification_cmd}`, truncatedLog);
           continue; // Self-heal on next iteration
         }
       } else {

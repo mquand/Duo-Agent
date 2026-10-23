@@ -15,6 +15,7 @@ import { CodeGraph } from './core/codegraph.js';
 import { Blackboard } from './core/blackboard.js';
 import { DAGScheduler } from './core/scheduler.js';
 import { SessionManager } from './core/session.js';
+import { ActivityLogger, ActivityMonitor } from './core/monitor.js';
 import { ProviderFactory } from './providers/factory.js';
 import { ArchitectAgent } from './agents/architect.js';
 import { BuilderAgent } from './agents/builder.js';
@@ -60,8 +61,10 @@ async function runWorkflow(
   try {
     plan = await architect.plan(promptText, codeSkeleton, project.ruleContent);
     spinner.succeed(chalk.green('Architect đã lập kế hoạch xong!'));
+    await ActivityLogger.log('architect', `Kế hoạch: ${plan.goal}`, plan.summary);
   } catch (err: any) {
     spinner.fail(chalk.red(`Lỗi lập kế hoạch: ${err.message}`));
+    await ActivityLogger.log('architect', `Lỗi lập kế hoạch: ${err.message}`);
     return;
   }
 
@@ -112,6 +115,7 @@ async function runWorkflow(
   const executionResult = await scheduler.executePlan(plan, {
     onStepStart: (step) => {
       stepSpinners[step.id] = ora(`[${step.id}] Đang thực thi: ${step.title}`).start();
+      ActivityLogger.log('builder', `[${step.id}] Bắt đầu: ${step.title}`, step.instructions);
     },
     onStepComplete: (step, res) => {
       if (stepSpinners[step.id]) {
@@ -119,11 +123,13 @@ async function runWorkflow(
           chalk.green(`[${step.id}] Hoàn thành: ${step.title} (${res.modifiedFiles.join(', ')})`)
         );
       }
+      ActivityLogger.log('builder', `[${step.id}] Hoàn thành: ${step.title}`, res.findings);
     },
     onStepError: (step, err) => {
       if (stepSpinners[step.id]) {
         stepSpinners[step.id].fail(chalk.red(`[${step.id}] Lỗi: ${err}`));
       }
+      ActivityLogger.log('builder', `[${step.id}] Lỗi: ${err}`);
     },
   });
 
@@ -146,16 +152,19 @@ async function runWorkflow(
   if (reviewResult.approved) {
     auditorSpinner.succeed(chalk.green('Chief Auditor: PHÊ DUYỆT CHẤT LƯỢNG (PASS)'));
     console.log(chalk.gray(`Nhận xét: ${reviewResult.critique}`));
+    await ActivityLogger.log('auditor', 'Chief Auditor: PHÊ DUYỆT (PASS)', reviewResult.critique);
     if (reviewResult.polishDiffs && reviewResult.polishDiffs.length > 0) {
       console.log(
         chalk.magenta(
           `✨ Chief Auditor đã tự động vá ${reviewResult.polishDiffs.length} chi tiết biên (Last-Mile Polish).`
         )
       );
+      await ActivityLogger.log('auditor', `Tự động vá ${reviewResult.polishDiffs.length} chi tiết biên (Last-Mile Polish)`);
     }
   } else {
     auditorSpinner.warn(chalk.yellow('Chief Auditor: Có lưu ý về chất lượng code:'));
     console.log(chalk.yellow(`Nhận xét: ${reviewResult.critique}`));
+    await ActivityLogger.log('auditor', 'Chief Auditor: CÓ LƯU Ý', reviewResult.critique);
   }
 
   // 9. Auto Format Code
@@ -348,6 +357,13 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
     await runWorkflow(trimmed, { autoAccept: false }, config, sessionManager, currentSession);
   }
 }
+
+program
+  .command('monitor')
+  .description('Mở màn hình Live Monitor theo dõi trực tiếp hoạt động của Agent và code diff theo thời gian thực')
+  .action(async () => {
+    await ActivityMonitor.start();
+  });
 
 program
   .name('duo')

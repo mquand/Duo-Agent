@@ -115,22 +115,33 @@ duo -r auth-flow
 duo --sessions
 ```
 
-#### 3. One-Shot Command
+#### 3. Dual-Pane Split Terminal & Live Monitor ⭐
+You can split your terminal into two panes (`Cmd + \` or `Ctrl + \` in VS Code / IDE):
+- **Pane 1 (Left)**: Interactive REPL shell (`duo`)
+- **Pane 2 (Right)**: Live activity and code diff watcher (`duo monitor`)
+
+```bash
+# In your second terminal window or split pane:
+duo monitor
+```
+`duo monitor` streams agent planning, function-level slicing, colorized code diffs, and local test logs in real time.
+
+#### 4. One-Shot Command
 ```bash
 duo "Add unit tests for authentication service"
 ```
 
-#### 4. Plan-Only Mode
+#### 5. Plan-Only Mode
 ```bash
 duo -p "Design event-driven notification queue"
 ```
 
-#### 5. Auto-Accept Mode (Autonomous)
+#### 6. Auto-Accept Mode (Autonomous)
 ```bash
 duo -y "Generate API documentation comments"
 ```
 
-#### 6. Rollback (Undo)
+#### 7. Rollback (Undo)
 ```bash
 duo --undo
 ```
@@ -163,6 +174,7 @@ Duo-Agent là công cụ CLI mã nguồn mở điều phối các mô hình AI t
   - Hỗ trợ chế độ **Tương tác**, **Chỉ lên Plan** (`-p`), và **Tự động** (`-y`).
 - 💬 **Chế độ Tương tác REPL & Lệnh Slash**: Gõ yêu cầu trực tiếp không cần ngoặc kép, hỗ trợ các lệnh `/sessions`, `/switch`, `/new`, `/session`, `/model`, `/plan`, `/diff`, `/undo`, `/config`.
 - 🗂️ **Quản lý đa phiên (Multi-Session Management)**: Lưu trữ các phiên làm việc độc lập trong `.duo/sessions/`. Chuyển đổi qua lại giữa các tính năng (`/switch`, `/new`) hoặc khôi phục phiên cũ (`duo -r`) mà không bị nhiễm độc ngữ cảnh.
+- 🖥️ **Chia đôi Terminal & Live Monitor**: Hỗ trợ mở 2 cửa sổ song song (`Cmd + \`). Một bên gõ lệnh (`duo`), một bên soi trực tiếp thay đổi code và tiến độ theo thời gian thực (`duo monitor`).
 - 🌐 **Tự động nhận diện (Zero-Config)**: Tự phát hiện các loại dự án (Elixir, TypeScript/JavaScript, Python, Rust, Go) và nạp file quy ước có sẵn (`CLAUDE.md`, `.cursorrules`, `.duorules`).
 - 🔌 **Linh hoạt cấu hình (Pluggable)**: Hỗ trợ mọi nhà cung cấp AI. Người dùng toàn quyền tùy biến tên model trong file cấu hình.
 
