@@ -14,7 +14,9 @@ const DANGEROUS_PATTERNS = [
   />\s*\/dev\/sd/i,
 ];
 
-function maskKey(key: string): string {
+function maskKey(key?: string): string {
+  if (!key) return chalk.dim('(not set / from env)');
+  if (key === 'not-needed-for-local') return chalk.cyan('(local - no key needed)');
   if (key.length <= 8) return '****';
   return `${key.slice(0, 6)}...${key.slice(-4)}`;
 }
@@ -27,46 +29,94 @@ interface ModelOption {
 }
 
 const POPULAR_ARCHITECT_MODELS: ModelOption[] = [
-  { name: 'Claude Opus 5.5 (Anthropic)', provider: 'anthropic', model: 'claude-opus-5-5' },
+  // Anthropic
+  { name: 'Claude 3.7 Sonnet (Anthropic - Hybrid Reasoning)', provider: 'anthropic', model: 'claude-3-7-sonnet-20250219' },
   { name: 'Claude Sonnet 5.5 (Anthropic)', provider: 'anthropic', model: 'claude-sonnet-5-5' },
+  { name: 'Claude Opus 5.5 (Anthropic flagship)', provider: 'anthropic', model: 'claude-opus-5-5' },
+  { name: 'Claude 3.5 Sonnet (Anthropic)', provider: 'anthropic', model: 'claude-3-5-sonnet-latest' },
+
+  // OpenAI
+  { name: 'OpenAI o3-mini (High-speed reasoning)', provider: 'openai-compatible', model: 'o3-mini' },
+  { name: 'OpenAI o1 (Deep reasoning)', provider: 'openai-compatible', model: 'o1' },
+  { name: 'GPT-4o (OpenAI flagship)', provider: 'openai-compatible', model: 'gpt-4o' },
   { name: 'GPT-6 Astra (OpenAI flagship)', provider: 'openai-compatible', model: 'gpt-6-astra' },
   { name: 'GPT-6.1 Sol (OpenAI)', provider: 'openai-compatible', model: 'gpt-6.1-sol' },
-  { name: 'Claude 3.7 Sonnet (Anthropic)', provider: 'anthropic', model: 'claude-3-7-sonnet-20250219' },
-  { name: 'OpenAI o3-mini', provider: 'openai-compatible', model: 'o3-mini' },
-  { name: 'OpenAI o1', provider: 'openai-compatible', model: 'o1' },
-  { name: 'GPT-4o (OpenAI)', provider: 'openai-compatible', model: 'gpt-4o' },
-  { name: 'DeepSeek R1', provider: 'openai-compatible', model: 'deepseek-reasoner', baseURL: 'https://api.deepseek.com/v1' },
-  { name: 'Claude 3.5 Sonnet (Anthropic)', provider: 'anthropic', model: 'claude-3-5-sonnet-latest' },
+
+  // Google
+  { name: 'Gemini 2.0 Pro Experimental (Google)', provider: 'google', model: 'gemini-2.0-pro-exp-02-05' },
+  { name: 'Gemini 2.0 Flash (Google)', provider: 'google', model: 'gemini-2.0-flash' },
+  { name: 'Gemini 1.5 Pro (Google)', provider: 'google', model: 'gemini-1.5-pro' },
+
+  // DeepSeek Official
+  { name: 'DeepSeek R1 Reasoner (DeepSeek API)', provider: 'openai-compatible', model: 'deepseek-reasoner', baseURL: 'https://api.deepseek.com/v1' },
+  { name: 'DeepSeek V3 Chat (DeepSeek API)', provider: 'openai-compatible', model: 'deepseek-chat', baseURL: 'https://api.deepseek.com/v1' },
+
+  // OpenRouter Unified API
+  { name: 'OpenRouter: Claude 3.7 Sonnet', provider: 'openai-compatible', model: 'anthropic/claude-3.7-sonnet', baseURL: 'https://openrouter.ai/api/v1' },
+  { name: 'OpenRouter: DeepSeek R1', provider: 'openai-compatible', model: 'deepseek/deepseek-r1', baseURL: 'https://openrouter.ai/api/v1' },
+
+  // Groq & Mistral
+  { name: 'Groq: Llama 3.3 70B Versatile', provider: 'openai-compatible', model: 'llama-3.3-70b-versatile', baseURL: 'https://api.groq.com/openai/v1' },
   { name: 'Mistral Large 2', provider: 'openai-compatible', model: 'mistral-large-latest', baseURL: 'https://api.mistral.ai/v1' },
-  { name: 'xAI Grok 2', provider: 'openai-compatible', model: 'grok-2-latest', baseURL: 'https://api.x.ai/v1' },
-  { name: 'Ollama DeepSeek-R1 (Local)', provider: 'openai-compatible', model: 'deepseek-r1:14b', baseURL: 'http://localhost:11434/v1' },
+
+  // Local Ollama
+  { name: 'Ollama: DeepSeek-R1 14B (Local)', provider: 'openai-compatible', model: 'deepseek-r1:14b', baseURL: 'http://localhost:11434/v1' },
+  { name: 'Ollama: DeepSeek-R1 32B (Local)', provider: 'openai-compatible', model: 'deepseek-r1:32b', baseURL: 'http://localhost:11434/v1' },
+  { name: 'Ollama: Qwen 2.5 Coder 32B (Local)', provider: 'openai-compatible', model: 'qwen2.5-coder:32b', baseURL: 'http://localhost:11434/v1' },
 ];
 
 const POPULAR_BUILDER_MODELS: ModelOption[] = [
-  { name: 'Gemini 2.0 Flash (Google)', provider: 'google', model: 'gemini-2.0-flash' },
-  { name: 'GPT-6 Luna (OpenAI fast/cheap)', provider: 'openai-compatible', model: 'gpt-6-luna' },
-  { name: 'GPT-6.1 Sol (OpenAI)', provider: 'openai-compatible', model: 'gpt-6.1-sol' },
+  // Google
+  { name: 'Gemini 2.0 Flash (Google - ultra-fast coding)', provider: 'google', model: 'gemini-2.0-flash' },
+  { name: 'Gemini 1.5 Flash (Google)', provider: 'google', model: 'gemini-1.5-flash' },
+
+  // Anthropic
   { name: 'Claude Haiku 5.5 (Anthropic)', provider: 'anthropic', model: 'claude-haiku-5-5' },
+  { name: 'Claude 3.5 Haiku (Anthropic fast/cheap)', provider: 'anthropic', model: 'claude-3-5-haiku-latest' },
   { name: 'Claude Sonnet 5.5 (Anthropic)', provider: 'anthropic', model: 'claude-sonnet-5-5' },
-  { name: 'Mistral Codestral', provider: 'openai-compatible', model: 'codestral-latest', baseURL: 'https://api.mistral.ai/v1' },
-  { name: 'GPT-4o-mini (OpenAI)', provider: 'openai-compatible', model: 'gpt-4o-mini' },
-  { name: 'OpenAI o3-mini', provider: 'openai-compatible', model: 'o3-mini' },
-  { name: 'DeepSeek V3', provider: 'openai-compatible', model: 'deepseek-chat', baseURL: 'https://api.deepseek.com/v1' },
-  { name: 'Groq Llama 3.3 70B', provider: 'openai-compatible', model: 'llama-3.3-70b-versatile', baseURL: 'https://api.groq.com/openai/v1' },
-  { name: 'Qwen 2.5 Coder 32B', provider: 'openai-compatible', model: 'Qwen/Qwen2.5-Coder-32B-Instruct' },
-  { name: 'Ollama Qwen 2.5 Coder (Local)', provider: 'openai-compatible', model: 'qwen2.5-coder:32b', baseURL: 'http://localhost:11434/v1' },
+
+  // OpenAI
+  { name: 'GPT-4o-mini (OpenAI fast/cheap)', provider: 'openai-compatible', model: 'gpt-4o-mini' },
+  { name: 'GPT-4o (OpenAI)', provider: 'openai-compatible', model: 'gpt-4o' },
+  { name: 'OpenAI o3-mini (Coding reasoning)', provider: 'openai-compatible', model: 'o3-mini' },
+  { name: 'GPT-6 Luna (OpenAI fast/cheap)', provider: 'openai-compatible', model: 'gpt-6-luna' },
+
+  // Mistral & DeepSeek
+  { name: 'Mistral Codestral (Specialized code)', provider: 'openai-compatible', model: 'codestral-latest', baseURL: 'https://api.mistral.ai/v1' },
+  { name: 'DeepSeek V3 Chat (DeepSeek API)', provider: 'openai-compatible', model: 'deepseek-chat', baseURL: 'https://api.deepseek.com/v1' },
+  { name: 'DeepSeek R1 Reasoner (DeepSeek API)', provider: 'openai-compatible', model: 'deepseek-reasoner', baseURL: 'https://api.deepseek.com/v1' },
+
+  // Groq & OpenRouter
+  { name: 'Groq: Llama 3.3 70B (Ultra-fast)', provider: 'openai-compatible', model: 'llama-3.3-70b-versatile', baseURL: 'https://api.groq.com/openai/v1' },
+  { name: 'OpenRouter: Qwen 2.5 Coder 32B', provider: 'openai-compatible', model: 'qwen/qwen-2.5-coder-32b-instruct', baseURL: 'https://openrouter.ai/api/v1' },
+
+  // Local Ollama
+  { name: 'Ollama: Qwen 2.5 Coder 32B (Local)', provider: 'openai-compatible', model: 'qwen2.5-coder:32b', baseURL: 'http://localhost:11434/v1' },
+  { name: 'Ollama: Qwen 2.5 Coder 14B (Local)', provider: 'openai-compatible', model: 'qwen2.5-coder:14b', baseURL: 'http://localhost:11434/v1' },
+  { name: 'Ollama: DeepSeek-R1 14B (Local)', provider: 'openai-compatible', model: 'deepseek-r1:14b', baseURL: 'http://localhost:11434/v1' },
 ];
 
 const POPULAR_AUDITOR_MODELS: ModelOption[] = [
-  { name: 'Claude Opus 5.5 (Anthropic)', provider: 'anthropic', model: 'claude-opus-5-5' },
+  // Anthropic
   { name: 'Claude Sonnet 5.5 (Anthropic)', provider: 'anthropic', model: 'claude-sonnet-5-5' },
-  { name: 'GPT-6 Astra (OpenAI flagship)', provider: 'openai-compatible', model: 'gpt-6-astra' },
-  { name: 'GPT-6.1 Sol (OpenAI)', provider: 'openai-compatible', model: 'gpt-6.1-sol' },
+  { name: 'Claude Opus 5.5 (Anthropic)', provider: 'anthropic', model: 'claude-opus-5-5' },
   { name: 'Claude 3.7 Sonnet (Anthropic)', provider: 'anthropic', model: 'claude-3-7-sonnet-20250219' },
-  { name: 'GPT-4o (OpenAI)', provider: 'openai-compatible', model: 'gpt-4o' },
-  { name: 'OpenAI o3-mini', provider: 'openai-compatible', model: 'o3-mini' },
-  { name: 'DeepSeek R1', provider: 'openai-compatible', model: 'deepseek-reasoner', baseURL: 'https://api.deepseek.com/v1' },
+
+  // OpenAI
+  { name: 'GPT-4o (OpenAI flagship)', provider: 'openai-compatible', model: 'gpt-4o' },
+  { name: 'OpenAI o3-mini (Deep verification)', provider: 'openai-compatible', model: 'o3-mini' },
+  { name: 'GPT-6.1 Sol (OpenAI)', provider: 'openai-compatible', model: 'gpt-6.1-sol' },
+
+  // Google
+  { name: 'Gemini 2.0 Pro Experimental (Google)', provider: 'google', model: 'gemini-2.0-pro-exp-02-05' },
+  { name: 'Gemini 2.0 Flash (Google)', provider: 'google', model: 'gemini-2.0-flash' },
+
+  // DeepSeek Official
+  { name: 'DeepSeek R1 Reasoner (DeepSeek API)', provider: 'openai-compatible', model: 'deepseek-reasoner', baseURL: 'https://api.deepseek.com/v1' },
+
+  // Mistral & Local
   { name: 'Mistral Large 2', provider: 'openai-compatible', model: 'mistral-large-latest', baseURL: 'https://api.mistral.ai/v1' },
+  { name: 'Ollama: DeepSeek-R1 14B (Local)', provider: 'openai-compatible', model: 'deepseek-r1:14b', baseURL: 'http://localhost:11434/v1' },
 ];
 
 export class SecurityPrompts {
@@ -127,14 +177,16 @@ export class SecurityPrompts {
     roleTitle: string,
     options: ModelOption[]
   ): Promise<RoleConfig> {
-    const choices = options.map((opt, idx) => ({
-      name: opt.name,
-      value: String(idx),
-    }));
-    choices.push({
-      name: 'Custom model...',
-      value: 'custom',
-    });
+    const choices = [
+      {
+        name: `${chalk.bold.cyan('✏️  Enter Custom Model / Endpoint')} ${chalk.gray('(Any model: Ollama, OpenRouter, vLLM, DeepSeek...)')}`,
+        value: 'custom',
+      },
+      ...options.map((opt, idx) => ({
+        name: opt.name,
+        value: String(idx),
+      })),
+    ];
 
     const selectedIdx = await select({
       message: `Select model for ${roleTitle}:`,
@@ -142,31 +194,163 @@ export class SecurityPrompts {
     });
 
     if (selectedIdx === 'custom') {
-      const providerChoice = await select({
-        message: `Provider for ${roleTitle}:`,
+      const customType = await select({
+        message: `Provider/Endpoint platform for ${roleTitle}:`,
         choices: [
-          { name: 'Anthropic', value: 'anthropic' },
-          { name: 'Google', value: 'google' },
-          { name: 'OpenAI-compatible (DeepSeek, Groq, OpenAI, Ollama)', value: 'openai-compatible' },
+          {
+            name: `${chalk.bold.yellow('🏠 Local Ollama')}              ${chalk.gray('Run any local model offline (e.g. qwen2.5-coder:32b, deepseek-r1:14b)')}`,
+            value: 'ollama',
+          },
+          {
+            name: `${chalk.bold.hex('#FF8800')('🌐 OpenRouter')}                ${chalk.gray('300+ models with unified API (e.g. anthropic/claude-3.7-sonnet)')}`,
+            value: 'openrouter',
+          },
+          {
+            name: `${chalk.bold.blue('🧠 DeepSeek Official')}            ${chalk.gray('Official API (deepseek-reasoner, deepseek-chat)')}`,
+            value: 'deepseek',
+          },
+          {
+            name: `${chalk.bold.cyan('🤖 Anthropic Claude')}             ${chalk.gray('Official Claude Opus, Sonnet, Haiku')}`,
+            value: 'anthropic',
+          },
+          {
+            name: `${chalk.bold.red('💎 Google Gemini')}                ${chalk.gray('Official Gemini 2.0 Flash, 2.0 Pro')}`,
+            value: 'google',
+          },
+          {
+            name: `${chalk.bold.green('🟢 OpenAI Official')}              ${chalk.gray('Official o3-mini, o1, GPT-4o')}`,
+            value: 'openai',
+          },
+          {
+            name: `${chalk.bold.magenta('⚡ Groq Cloud')}                   ${chalk.gray('Ultra-fast inference (llama-3.3-70b-versatile)')}`,
+            value: 'groq',
+          },
+          {
+            name: `${chalk.bold.white('🖥️  Local vLLM / LM Studio')}       ${chalk.gray('Local OpenAI-compatible server at custom port')}`,
+            value: 'local_server',
+          },
+          {
+            name: `${chalk.bold.gray('⚙️  Custom OpenAI-Compatible')}     ${chalk.gray('Any custom Base URL & model name')}`,
+            value: 'custom_url',
+          },
         ],
       });
 
-      const customModel = await input({
-        message: `Model name:`,
-      });
-
-      let baseURL: string | undefined;
-      if (providerChoice === 'openai-compatible') {
-        baseURL = await input({
-          message: 'Base URL (optional, e.g. https://api.deepseek.com/v1):',
-          default: 'https://api.openai.com/v1',
+      if (customType === 'ollama') {
+        const modelName = await input({
+          message: `Ollama model name (e.g. qwen2.5-coder:32b, deepseek-r1:14b):`,
+          default: roleTitle === 'Builder' ? 'qwen2.5-coder:32b' : 'deepseek-r1:14b',
         });
+        return {
+          provider: 'openai-compatible',
+          model: modelName.trim(),
+          baseURL: 'http://localhost:11434/v1',
+          apiKey: 'not-needed-for-local',
+        };
       }
 
+      if (customType === 'openrouter') {
+        const modelName = await input({
+          message: `OpenRouter model identifier (e.g. anthropic/claude-3.7-sonnet, deepseek/deepseek-r1):`,
+          default: roleTitle === 'Builder' ? 'qwen/qwen-2.5-coder-32b-instruct' : 'anthropic/claude-3.7-sonnet',
+        });
+        return {
+          provider: 'openai-compatible',
+          model: modelName.trim(),
+          baseURL: 'https://openrouter.ai/api/v1',
+        };
+      }
+
+      if (customType === 'deepseek') {
+        const modelName = await select({
+          message: `DeepSeek model:`,
+          choices: [
+            { name: 'deepseek-reasoner (DeepSeek-R1 reasoning model)', value: 'deepseek-reasoner' },
+            { name: 'deepseek-chat (DeepSeek-V3 chat & coding model)', value: 'deepseek-chat' },
+          ],
+        });
+        return {
+          provider: 'openai-compatible',
+          model: modelName,
+          baseURL: 'https://api.deepseek.com/v1',
+        };
+      }
+
+      if (customType === 'groq') {
+        const modelName = await input({
+          message: `Groq model identifier:`,
+          default: 'llama-3.3-70b-versatile',
+        });
+        return {
+          provider: 'openai-compatible',
+          model: modelName.trim(),
+          baseURL: 'https://api.groq.com/openai/v1',
+        };
+      }
+
+      if (customType === 'anthropic') {
+        const modelName = await input({
+          message: `Anthropic model name:`,
+          default: roleTitle === 'Builder' ? 'claude-haiku-5-5' : 'claude-sonnet-5-5',
+        });
+        return {
+          provider: 'anthropic',
+          model: modelName.trim(),
+        };
+      }
+
+      if (customType === 'google') {
+        const modelName = await input({
+          message: `Google Gemini model name:`,
+          default: 'gemini-2.0-flash',
+        });
+        return {
+          provider: 'google',
+          model: modelName.trim(),
+        };
+      }
+
+      if (customType === 'openai') {
+        const modelName = await input({
+          message: `OpenAI model name:`,
+          default: roleTitle === 'Architect' ? 'o3-mini' : 'gpt-4o-mini',
+        });
+        return {
+          provider: 'openai-compatible',
+          model: modelName.trim(),
+          baseURL: 'https://api.openai.com/v1',
+        };
+      }
+
+      if (customType === 'local_server') {
+        const baseURL = await input({
+          message: `Local server Base URL:`,
+          default: 'http://localhost:1234/v1',
+        });
+        const modelName = await input({
+          message: `Model name on local server:`,
+          default: 'local-model',
+        });
+        return {
+          provider: 'openai-compatible',
+          model: modelName.trim(),
+          baseURL: baseURL.trim(),
+          apiKey: 'not-needed-for-local',
+        };
+      }
+
+      // custom_url
+      const baseURL = await input({
+        message: `Custom OpenAI-compatible Base URL:`,
+        default: 'https://api.openai.com/v1',
+      });
+      const modelName = await input({
+        message: `Model name:`,
+      });
       return {
-        provider: providerChoice as ProviderType,
-        model: customModel.trim(),
-        baseURL: baseURL?.trim() || undefined,
+        provider: 'openai-compatible',
+        model: modelName.trim(),
+        baseURL: baseURL.trim(),
       };
     }
 
@@ -447,20 +631,24 @@ export class SecurityPrompts {
 
     if (isLocal) {
       newRoleConfig.apiKey = 'not-needed-for-local';
-      console.log(chalk.green(`+ Local Ollama model selected - No API key required.`));
+      console.log(chalk.green(`+ Local model selected - No API key required.`));
     } else {
       const currentKey = config.roles[targetRole]?.apiKey;
       const keyHint = currentKey
-        ? chalk.dim('[Enter to keep current]')
-        : chalk.dim('[Paste key or Enter if set in env]');
+        ? chalk.dim(`[Enter to keep current (${maskKey(currentKey)}), or type "none" to remove]`)
+        : chalk.dim('[Paste key, Enter if set in env, or type "none" for no key]');
 
-      const apiKey = await password({
+      const inputKey = await input({
         message: `API Key for ${targetRole} ${keyHint}:`,
-        mask: '*',
       });
-      if (apiKey.trim()) {
-        newRoleConfig.apiKey = apiKey.trim();
-        console.log(chalk.green(`+ ${targetRole} API Key updated (${maskKey(apiKey.trim())})`));
+      const trimmed = inputKey.trim();
+      const lower = trimmed.toLowerCase();
+      if (['none', 'clear', 'remove', 'delete', 'no', 'unset'].includes(lower)) {
+        delete newRoleConfig.apiKey;
+        console.log(chalk.yellow(`+ Removed API Key for ${targetRole} (key cleared).`));
+      } else if (trimmed) {
+        newRoleConfig.apiKey = trimmed;
+        console.log(chalk.green(`+ ${targetRole} API Key updated (${maskKey(trimmed)})`));
       } else {
         newRoleConfig.apiKey = config.roles[targetRole]?.apiKey;
       }
@@ -488,6 +676,108 @@ export class SecurityPrompts {
 
     console.log(chalk.green(`\n+ Updated ${targetRole} to ${newRoleConfig.model} (${newRoleConfig.provider}, effort: ${newRoleConfig.reasoningEffort})`));
     return updatedConfig;
+  }
+
+  static async promptKeyManagement(config: AppConfig): Promise<AppConfig> {
+    const isEn = config.language === 'en';
+    console.log(chalk.white.bold(isEn ? '\nAPI Key Management\n' : '\nQuản lý API Key\n'));
+
+    const roles = [
+      { id: 'architect' as const, name: 'Architect', role: config.roles.architect },
+      { id: 'builder' as const, name: 'Builder', role: config.roles.builder },
+      { id: 'auditor' as const, name: 'Auditor', role: config.roles.auditor },
+    ];
+
+    for (const { name, role } of roles) {
+      const masked = maskKey(role.apiKey);
+      const prov = role.provider + (role.baseURL ? ` @ ${role.baseURL}` : '');
+      console.log(
+        `  ${chalk.cyan(name.padEnd(10))} ${chalk.gray(`[${role.model}]`)} ${chalk.gray(`(${prov})`)}: ${chalk.yellow(masked)}`
+      );
+    }
+    console.log();
+
+    const action = await select({
+      message: isEn ? 'Select API key action:' : 'Chọn thao tác với API Key:',
+      choices: [
+        {
+          name: isEn ? '✏️  Update API Key for a role' : '✏️  Cập nhật API Key cho một vai trò',
+          value: 'update',
+        },
+        {
+          name: isEn ? '🗑️  Remove / Clear API Key for a role (Stop using key)' : '🗑️  Xóa / Bỏ API Key của một vai trò (Không dùng key nữa)',
+          value: 'remove_one',
+        },
+        {
+          name: isEn ? '🧹  Clear ALL stored API Keys (Switch to local Ollama or .env)' : '🧹  Xóa TOÀN BỘ API Key đã lưu (Chuyển sang offline hoặc file .env)',
+          value: 'clear_all',
+        },
+        {
+          name: isEn ? '🔙  Cancel / Back' : '🔙  Quay lại',
+          value: 'back',
+        },
+      ],
+    });
+
+    if (action === 'back') return config;
+
+    const newRoles = {
+      architect: { ...config.roles.architect },
+      builder: { ...config.roles.builder },
+      auditor: { ...config.roles.auditor },
+    };
+
+    if (action === 'clear_all') {
+      delete newRoles.architect.apiKey;
+      delete newRoles.builder.apiKey;
+      delete newRoles.auditor.apiKey;
+      console.log(chalk.green(isEn ? '\n+ Cleared all API keys from config.\n' : '\n+ Đã xóa toàn bộ API key khỏi cấu hình.\n'));
+      return { ...config, roles: newRoles };
+    }
+
+    if (action === 'remove_one') {
+      const targetRole = (await select({
+        message: isEn ? 'Select role to remove API key from:' : 'Chọn vai trò cần xóa API Key:',
+        choices: [
+          { name: `Architect (${config.roles.architect.model})`, value: 'architect' },
+          { name: `Builder (${config.roles.builder.model})`, value: 'builder' },
+          { name: `Auditor (${config.roles.auditor.model})`, value: 'auditor' },
+        ],
+      })) as 'architect' | 'builder' | 'auditor';
+
+      delete newRoles[targetRole].apiKey;
+      console.log(chalk.green(isEn ? `\n+ Removed API Key for ${targetRole}.\n` : `\n+ Đã xóa API Key của ${targetRole}.\n`));
+      return { ...config, roles: newRoles };
+    }
+
+    if (action === 'update') {
+      const targetRole = (await select({
+        message: isEn ? 'Select role to update API key:' : 'Chọn vai trò cần cập nhật API Key:',
+        choices: [
+          { name: `Architect (${config.roles.architect.model})`, value: 'architect' },
+          { name: `Builder (${config.roles.builder.model})`, value: 'builder' },
+          { name: `Auditor (${config.roles.auditor.model})`, value: 'auditor' },
+        ],
+      })) as 'architect' | 'builder' | 'auditor';
+
+      const keyInput = await input({
+        message: isEn
+          ? `Enter new API key for ${targetRole} (or type 'none' to remove):`
+          : `Nhập API Key mới cho ${targetRole} (hoặc gõ 'none' để xóa key):`,
+      });
+
+      const trimmed = keyInput.trim();
+      if (!trimmed || ['none', 'clear', 'remove', 'delete', 'no'].includes(trimmed.toLowerCase())) {
+        delete newRoles[targetRole].apiKey;
+        console.log(chalk.yellow(isEn ? `\n+ Removed API Key for ${targetRole}.\n` : `\n+ Đã xóa API Key của ${targetRole}.\n`));
+      } else {
+        newRoles[targetRole].apiKey = trimmed;
+        console.log(chalk.green(isEn ? `\n+ Updated API Key for ${targetRole} (${maskKey(trimmed)}).\n` : `\n+ Đã cập nhật API Key cho ${targetRole} (${maskKey(trimmed)}).\n`));
+      }
+      return { ...config, roles: newRoles };
+    }
+
+    return config;
   }
 
   static async promptSelectEffort(config: AppConfig): Promise<AppConfig> {

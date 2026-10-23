@@ -249,7 +249,8 @@ npm test
 | Command | Argument | Description |
 | :--- | :--- | :--- |
 | `/help` | — | Display command reference and shortcut guide |
-| `/model` | — | Interactively switch models (Claude 5.5, GPT-6, DeepSeek, Local Ollama) |
+| `/model` | — | Interactively switch models (Claude 5.5, GPT-6, DeepSeek, Local Ollama, Custom) |
+| `/key` | — | View, update, or remove/clear API keys for each role |
 | `/effort` | `[low\|med\|high\|off]` | Configure reasoning effort & thinking budget for models |
 | `/benchmark` | — | Run empirical benchmark comparing Sandwich vs Monolith |
 | `/cost` | — | Inspect cumulative token consumption and estimated USD costs |
