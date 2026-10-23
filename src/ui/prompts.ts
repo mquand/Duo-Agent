@@ -244,20 +244,28 @@ export class SecurityPrompts {
       };
       auditorConfig = { provider: 'anthropic', model: 'claude-haiku-5-5' };
     } else if (presetChoice === 'offline') {
-      architectConfig = {
-        provider: 'openai-compatible',
-        model: 'deepseek-r1:14b',
-        baseURL: 'http://localhost:11434/v1',
-      };
-      builderConfig = {
-        provider: 'openai-compatible',
-        model: 'qwen2.5-coder:32b',
-        baseURL: 'http://localhost:11434/v1',
-      };
-      auditorConfig = {
-        provider: 'openai-compatible',
-        model: 'deepseek-r1:14b',
-        baseURL: 'http://localhost:11434/v1',
+      console.log(chalk.green('\n+ Configured for Local Offline (Ollama) - No API keys required!\n'));
+      return {
+        roles: {
+          architect: {
+            provider: 'openai-compatible',
+            model: 'deepseek-r1:14b',
+            baseURL: 'http://localhost:11434/v1',
+            apiKey: 'not-needed-for-local',
+          },
+          builder: {
+            provider: 'openai-compatible',
+            model: 'qwen2.5-coder:32b',
+            baseURL: 'http://localhost:11434/v1',
+            apiKey: 'not-needed-for-local',
+          },
+          auditor: {
+            provider: 'openai-compatible',
+            model: 'deepseek-r1:14b',
+            baseURL: 'http://localhost:11434/v1',
+            apiKey: 'not-needed-for-local',
+          },
+        },
       };
     } else {
       architectConfig = await this.selectOrCustomModel('Architect', POPULAR_ARCHITECT_MODELS);
@@ -266,34 +274,45 @@ export class SecurityPrompts {
     }
 
     // Ask for API keys if needed
-    console.log(chalk.gray('\nAPI Keys (Enter to use detected environment variable, or paste key):'));
+    console.log(chalk.gray('\nAPI Keys Configuration:'));
 
     if (architectConfig.provider === 'anthropic' || auditorConfig.provider === 'anthropic') {
       const hasEnv = !!process.env.ANTHROPIC_API_KEY;
-      const key = await password({
-        message: hasEnv
-          ? `Anthropic API Key ${chalk.dim('[Found in $ANTHROPIC_API_KEY - press Enter to use]')}:`
-          : `Anthropic API Key ${chalk.dim('[Paste sk-ant-... or Enter to skip if using local]')}:`,
-        mask: '*',
-      });
-      if (key.trim()) {
-        architectConfig.apiKey = key.trim();
-        if (auditorConfig.provider === 'anthropic') auditorConfig.apiKey = key.trim();
-        console.log(chalk.green(`+ Anthropic Key received (${maskKey(key.trim())})`));
+      if (hasEnv) {
+        architectConfig.apiKey = process.env.ANTHROPIC_API_KEY;
+        if (auditorConfig.provider === 'anthropic') auditorConfig.apiKey = process.env.ANTHROPIC_API_KEY;
+        console.log(chalk.green(`+ Found $ANTHROPIC_API_KEY in environment (${maskKey(process.env.ANTHROPIC_API_KEY!)})`));
+      } else {
+        const key = await password({
+          message: `Anthropic API Key ${chalk.dim('[Paste sk-ant-... or press Enter to set later]')}:`,
+          mask: '*',
+        });
+        if (key.trim()) {
+          architectConfig.apiKey = key.trim();
+          if (auditorConfig.provider === 'anthropic') auditorConfig.apiKey = key.trim();
+          console.log(chalk.green(`+ Anthropic Key received (${maskKey(key.trim())})`));
+        } else {
+          console.log(chalk.yellow('⚠️ Notice: Claude models require an Anthropic API key to run.'));
+        }
       }
     }
 
     if (builderConfig.provider === 'google') {
-      const hasEnv = !!(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY);
-      const key = await password({
-        message: hasEnv
-          ? `Google Gemini API Key ${chalk.dim('[Found in $GEMINI_API_KEY - press Enter to use]')}:`
-          : `Google Gemini API Key ${chalk.dim('[Paste AIzaSy... or Enter to skip if using local]')}:`,
-        mask: '*',
-      });
-      if (key.trim()) {
-        builderConfig.apiKey = key.trim();
-        console.log(chalk.green(`+ Google Gemini Key received (${maskKey(key.trim())})`));
+      const envKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+      if (envKey) {
+        builderConfig.apiKey = envKey;
+        console.log(chalk.green(`+ Found $GEMINI_API_KEY in environment (${maskKey(envKey)})`));
+      } else {
+        const key = await password({
+          message: `Google Gemini API Key ${chalk.dim('[Paste AIzaSy... or press Enter to set later]')}:`,
+          mask: '*',
+        });
+        if (key.trim()) {
+          builderConfig.apiKey = key.trim();
+          console.log(chalk.green(`+ Google Gemini Key received (${maskKey(key.trim())})`));
+        } else {
+          console.log(chalk.yellow('⚠️ Notice: Gemini Flash requires a Google API key to run.'));
+        }
       }
     }
 
@@ -305,25 +324,33 @@ export class SecurityPrompts {
       const isLocal =
         architectConfig.baseURL?.includes('localhost') ||
         builderConfig.baseURL?.includes('localhost') ||
-        auditorConfig.baseURL?.includes('localhost');
-      const hasEnv = !!(process.env.OPENAI_API_KEY || process.env.DEEPSEEK_API_KEY || process.env.GROQ_API_KEY);
+        auditorConfig.baseURL?.includes('localhost') ||
+        architectConfig.baseURL?.includes('127.0.0.1');
 
-      let hint = chalk.dim('[Paste sk-... or Enter to skip]');
       if (isLocal) {
-        hint = chalk.dim('[Optional for local/Ollama - press Enter to skip]');
-      } else if (hasEnv) {
-        hint = chalk.dim('[Found in env - press Enter to use]');
-      }
-
-      const key = await password({
-        message: `OpenAI-compatible API Key ${hint}:`,
-        mask: '*',
-      });
-      if (key.trim()) {
-        if (architectConfig.provider === 'openai-compatible') architectConfig.apiKey = key.trim();
-        if (builderConfig.provider === 'openai-compatible') builderConfig.apiKey = key.trim();
-        if (auditorConfig.provider === 'openai-compatible') auditorConfig.apiKey = key.trim();
-        console.log(chalk.green(`+ OpenAI-compatible Key received (${maskKey(key.trim())})`));
+        if (architectConfig.provider === 'openai-compatible') architectConfig.apiKey = 'not-needed-for-local';
+        if (builderConfig.provider === 'openai-compatible') builderConfig.apiKey = 'not-needed-for-local';
+        if (auditorConfig.provider === 'openai-compatible') auditorConfig.apiKey = 'not-needed-for-local';
+        console.log(chalk.green('+ Local LLM endpoint detected (Ollama) - No API key needed.'));
+      } else {
+        const envKey = process.env.OPENAI_API_KEY || process.env.DEEPSEEK_API_KEY || process.env.GROQ_API_KEY;
+        if (envKey) {
+          if (architectConfig.provider === 'openai-compatible') architectConfig.apiKey = envKey;
+          if (builderConfig.provider === 'openai-compatible') builderConfig.apiKey = envKey;
+          if (auditorConfig.provider === 'openai-compatible') auditorConfig.apiKey = envKey;
+          console.log(chalk.green(`+ Found API key in environment (${maskKey(envKey)})`));
+        } else {
+          const key = await password({
+            message: `API Key for ${architectConfig.model || builderConfig.model} ${chalk.dim('[Paste sk-... or press Enter to set later]')}:`,
+            mask: '*',
+          });
+          if (key.trim()) {
+            if (architectConfig.provider === 'openai-compatible') architectConfig.apiKey = key.trim();
+            if (builderConfig.provider === 'openai-compatible') builderConfig.apiKey = key.trim();
+            if (auditorConfig.provider === 'openai-compatible') auditorConfig.apiKey = key.trim();
+            console.log(chalk.green(`+ API Key received (${maskKey(key.trim())})`));
+          }
+        }
       }
     }
 
@@ -340,11 +367,20 @@ export class SecurityPrompts {
     const roleChoice = await select({
       message: 'Select role to change model:',
       choices: [
+        { name: 'All Roles (Switch to a full preset: Ollama Local, Claude, GPT-6...)', value: 'all' },
         { name: `Architect (${config.roles.architect.model})`, value: 'architect' },
         { name: `Builder (${config.roles.builder.model})`, value: 'builder' },
         { name: `Auditor (${config.roles.auditor.model})`, value: 'auditor' },
       ],
     });
+
+    if (roleChoice === 'all') {
+      const newConfig = await this.promptOnboarding();
+      return {
+        ...config,
+        roles: newConfig.roles,
+      };
+    }
 
     const targetRole = roleChoice as 'architect' | 'builder' | 'auditor';
     let options: ModelOption[];
@@ -354,20 +390,29 @@ export class SecurityPrompts {
 
     const newRoleConfig = await this.selectOrCustomModel(targetRole, options);
 
-    const currentKey = config.roles[targetRole]?.apiKey;
-    const keyHint = currentKey
-      ? chalk.dim('[Enter to keep current]')
-      : chalk.dim('[Paste key or Enter if set in env]');
+    const isLocal =
+      newRoleConfig.provider === 'openai-compatible' &&
+      (newRoleConfig.baseURL?.includes('localhost') || newRoleConfig.baseURL?.includes('127.0.0.1'));
 
-    const apiKey = await password({
-      message: `API Key for ${targetRole} ${keyHint}:`,
-      mask: '*',
-    });
-    if (apiKey.trim()) {
-      newRoleConfig.apiKey = apiKey.trim();
-      console.log(chalk.green(`+ ${targetRole} API Key updated (${maskKey(apiKey.trim())})`));
+    if (isLocal) {
+      newRoleConfig.apiKey = 'not-needed-for-local';
+      console.log(chalk.green(`+ Local Ollama model selected - No API key required.`));
     } else {
-      newRoleConfig.apiKey = config.roles[targetRole]?.apiKey;
+      const currentKey = config.roles[targetRole]?.apiKey;
+      const keyHint = currentKey
+        ? chalk.dim('[Enter to keep current]')
+        : chalk.dim('[Paste key or Enter if set in env]');
+
+      const apiKey = await password({
+        message: `API Key for ${targetRole} ${keyHint}:`,
+        mask: '*',
+      });
+      if (apiKey.trim()) {
+        newRoleConfig.apiKey = apiKey.trim();
+        console.log(chalk.green(`+ ${targetRole} API Key updated (${maskKey(apiKey.trim())})`));
+      } else {
+        newRoleConfig.apiKey = config.roles[targetRole]?.apiKey;
+      }
     }
 
     const effortChoice = await select({
