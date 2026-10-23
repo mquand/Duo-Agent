@@ -8,7 +8,7 @@ import os from 'os';
 import readline from 'readline';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { select } from '@inquirer/prompts';
+import { select, confirm } from '@inquirer/prompts';
 
 import { ConfigManager } from './config/manager.js';
 import { ProjectDetector } from './detector/project.js';
@@ -40,6 +40,7 @@ const program = new Command();
 const SLASH_COMMANDS_LIST = [
   '/help',
   '/model',
+  '/rules',
   '/effort',
   '/benchmark',
   '/theme',
@@ -236,26 +237,31 @@ async function runWorkflow(
   const scheduler = new DAGScheduler(builder, blackboard);
 
   const stepSpinners: Record<string, any> = {};
-  const executionResult = await scheduler.executePlan(plan, {
-    onStepStart: (step) => {
-      stepSpinners[step.id] = ora(`[${step.id}] ${step.title}`).start();
-      ActivityLogger.log('builder', isEn ? `[${step.id}] Start: ${step.title}` : `[${step.id}] Bắt đầu: ${step.title}`, step.instructions);
+  const executionResult = await scheduler.executePlan(
+    plan,
+    {
+      onStepStart: (step) => {
+        stepSpinners[step.id] = ora(`[${step.id}] ${step.title}`).start();
+        ActivityLogger.log('builder', isEn ? `[${step.id}] Start: ${step.title}` : `[${step.id}] Bắt đầu: ${step.title}`, step.instructions);
+      },
+      onStepComplete: (step, res) => {
+        if (stepSpinners[step.id]) {
+          stepSpinners[step.id].succeed(
+            chalk.green(`[${step.id}] ${step.title} (${res.modifiedFiles.join(', ')})`)
+          );
+        }
+        ActivityLogger.log('builder', isEn ? `[${step.id}] Completed: ${step.title}` : `[${step.id}] Hoàn thành: ${step.title}`, res.findings);
+      },
+      onStepError: (step, err) => {
+        if (stepSpinners[step.id]) {
+          stepSpinners[step.id].fail(chalk.red(`[${step.id}] ${isEn ? 'Error:' : 'Lỗi:'} ${err}`));
+        }
+        ActivityLogger.log('builder', `[${step.id}] ${isEn ? 'Error:' : 'Lỗi:'} ${err}`);
+      },
     },
-    onStepComplete: (step, res) => {
-      if (stepSpinners[step.id]) {
-        stepSpinners[step.id].succeed(
-          chalk.green(`[${step.id}] ${step.title} (${res.modifiedFiles.join(', ')})`)
-        );
-      }
-      ActivityLogger.log('builder', isEn ? `[${step.id}] Completed: ${step.title}` : `[${step.id}] Hoàn thành: ${step.title}`, res.findings);
-    },
-    onStepError: (step, err) => {
-      if (stepSpinners[step.id]) {
-        stepSpinners[step.id].fail(chalk.red(`[${step.id}] ${isEn ? 'Error:' : 'Lỗi:'} ${err}`));
-      }
-      ActivityLogger.log('builder', `[${step.id}] ${isEn ? 'Error:' : 'Lỗi:'} ${err}`);
-    },
-  });
+    process.cwd(),
+    project.ruleContent
+  );
 
   if (!executionResult.success) {
     Logger.printError(isEn ? 'Execution paused due to errors.' : 'Một số bước bị lỗi. Tạm dừng thực thi.');
@@ -496,6 +502,7 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
         choices: [
           { name: `${chalk.cyan('/help')}      ${chalk.gray(isEn ? 'Display command reference' : 'Xem trợ giúp tra cứu lệnh')}`, value: '/help' },
           { name: `${chalk.cyan('/model')}     ${chalk.gray(isEn ? 'Switch AI models (Claude 5.5, GPT-6...)' : 'Đổi AI model cho từng vai trò')}`, value: '/model' },
+          { name: `${chalk.cyan('/rules')}     ${chalk.gray(isEn ? 'View or configure repo guidelines (.duorules)' : 'Xem hoặc cấu hình quy ước repo (.duorules)')}`, value: '/rules' },
           { name: `${chalk.cyan('/theme')}     ${chalk.gray(isEn ? 'Select terminal color theme' : 'Đổi giao diện màu sắc Terminal')}`, value: '/theme' },
           { name: `${chalk.cyan('/lang')}      ${chalk.gray(isEn ? 'Switch interface language' : 'Đổi ngôn ngữ giao diện (en / vi)')}`, value: '/lang' },
           { name: `${chalk.cyan('/cost')}      ${chalk.gray(isEn ? 'Display cumulative token usage & cost' : 'Thống kê chi phí & tokens của phiên')}`, value: '/cost' },
@@ -732,6 +739,36 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
       continue;
     }
 
+    if (action === '/rules' || action === '/rule') {
+      const detected = await ProjectDetector.detect(process.cwd());
+      if (detected.ruleFile && detected.ruleContent) {
+        console.log(chalk.white.bold(isEn ? '\nActive Project Rules:' : '\nQuy ước dự án hiện tại:'));
+        console.log(chalk.cyan(`Source: ${detected.ruleFile}`) + chalk.gray(` (${detected.ruleContent.length} chars, ~${Math.round(detected.ruleContent.length / 4)} tokens)`));
+        console.log(chalk.gray('─'.repeat(60)));
+        const previewLines = detected.ruleContent.split('\n').slice(0, 18).join('\n');
+        console.log(previewLines);
+        if (detected.ruleContent.split('\n').length > 18) {
+          console.log(chalk.gray(`... [${detected.ruleContent.split('\n').length - 18} ${isEn ? 'more lines omitted]' : 'dòng khác đã ẩn]'}`));
+        }
+        console.log(chalk.gray('─'.repeat(60) + '\n'));
+      } else {
+        console.log(chalk.yellow(isEn ? '\nNo repository rules file detected.' : '\nChưa phát hiện file quy ước trong dự án.'));
+        console.log(chalk.gray(isEn
+          ? 'Supported rule files: .duorules, .duo/rules.md, CLAUDE.md, .cursorrules, AGENTS.md'
+          : 'Hỗ trợ các file: .duorules, .duo/rules.md, CLAUDE.md, .cursorrules, AGENTS.md'
+        ));
+        const shouldCreate = await confirm({
+          message: isEn ? `Create recommended .duorules for ${detected.type} project?` : `Tạo file .duorules chuẩn cho dự án ${detected.type}?`,
+          default: true,
+        });
+        if (shouldCreate) {
+          const initRes = await ProjectDetector.initRules(process.cwd(), true);
+          console.log(chalk.green(isEn ? `\n+ Created ${initRes.file} successfully! You can customize it anytime.\n` : `\n+ Đã tạo ${initRes.file} thành công! Bạn có thể tùy chỉnh file này bất kỳ lúc nào.\n`));
+        }
+      }
+      continue;
+    }
+
     if (action === '/theme') {
       config = await SecurityPrompts.promptSelectTheme(config);
       await ConfigManager.saveConfig(config);
@@ -871,6 +908,43 @@ program
       config = await SecurityPrompts.promptSelectLanguage(config);
       await ConfigManager.saveConfig(config);
     }
+  });
+
+program
+  .command('rules [action]')
+  .description('View or initialize repository rules (.duorules)')
+  .action(async (action) => {
+    const isInit = action === 'init' || action === 'create';
+    const detected = await ProjectDetector.detect(process.cwd());
+    if (isInit || !detected.ruleFile) {
+      const initRes = await ProjectDetector.initRules(process.cwd(), isInit);
+      if (initRes.created) {
+        console.log(chalk.green(`\n+ Created ${initRes.file} tailored for ${detected.type.toUpperCase()} project.\n`));
+      } else {
+        console.log(chalk.yellow(`\nNotice: ${initRes.file} already exists. Pass 'duo rules init' to overwrite.\n`));
+      }
+      return;
+    }
+
+    console.log(chalk.white.bold('\nActive Project Rules:'));
+    console.log(chalk.cyan(`Source: ${detected.ruleFile}`) + chalk.gray(` (~${Math.round((detected.ruleContent || '').length / 4)} tokens)\n`));
+    console.log(chalk.gray('─'.repeat(60)));
+    console.log(detected.ruleContent);
+    console.log(chalk.gray('─'.repeat(60) + '\n'));
+  });
+
+program
+  .command('init')
+  .description('Initialize Duo in current repo (generate .duorules tailored to project stack)')
+  .action(async () => {
+    const detected = await ProjectDetector.detect(process.cwd());
+    const initRes = await ProjectDetector.initRules(process.cwd(), false);
+    if (initRes.created) {
+      console.log(chalk.green(`\n+ Initialized ${initRes.file} for ${detected.type.toUpperCase()} project.`));
+    } else {
+      console.log(chalk.yellow(`\nNotice: Existing rules file (${detected.ruleFile}) detected. Repository is already initialized.`));
+    }
+    console.log(chalk.gray(`- Run 'duo' to start interactive session.\n`));
   });
 
 program

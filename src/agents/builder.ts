@@ -26,7 +26,8 @@ export class BuilderAgent {
   async executeStep(
     step: DAGStep,
     blackboardSummary?: string,
-    cwd: string = process.cwd()
+    cwd: string = process.cwd(),
+    projectRules?: string
   ): Promise<BuilderResult> {
     const patchPreviews: string[] = [];
     const modifiedFiles: string[] = [];
@@ -59,6 +60,9 @@ If creating a brand new file, use:
 >>>>>>>`;
 
     let userPrompt = `TASK INSTRUCTIONS: ${step.instructions}\n`;
+    if (projectRules) {
+      userPrompt += `\nPROJECT GUIDELINES & REPO CONVENTIONS:\n${projectRules}\n`;
+    }
     if (blackboardSummary) {
       userPrompt += `\n${blackboardSummary}\n`;
     }

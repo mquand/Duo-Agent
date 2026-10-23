@@ -23,6 +23,7 @@ export const i18n = {
     console.log(chalk.cyan(isEn ? 'Interactive Shell Commands:' : 'Lệnh trong Shell tương tác:'));
     const slashCommands = [
       { cmd: '/help', desc: isEn ? 'Display command reference' : 'Hiển thị trợ giúp tra cứu lệnh' },
+      { cmd: '/rules', desc: isEn ? 'View or initialize repo guidelines (.duorules)' : 'Xem hoặc tạo file quy ước repo (.duorules)' },
       { cmd: '/lang', desc: isEn ? 'Switch language (English / Vietnamese)' : 'Đổi ngôn ngữ giao diện (English / Vietnamese)' },
       { cmd: '/theme', desc: isEn ? 'Select terminal theme' : 'Chọn giao diện màu sắc Terminal' },
       { cmd: '/model', desc: isEn ? 'Switch models for Architect, Builder, Auditor' : 'Đổi model cho từng vai trò' },
@@ -50,6 +51,8 @@ export const i18n = {
     console.log(chalk.cyan(isEn ? '\nTerminal Commands:' : '\nLệnh từ Terminal:'));
     const cliCommands = [
       { cmd: 'duo', desc: isEn ? 'Interactive shell (recommended)' : 'Khởi chạy chế độ tương tác (khuyên dùng)' },
+      { cmd: 'duo init', desc: isEn ? 'Initialize Duo & create .duorules' : 'Khởi tạo Duo & tạo file quy ước .duorules' },
+      { cmd: 'duo rules', desc: isEn ? 'Inspect or create repo guidelines' : 'Xem hoặc cấu hình quy ước cho repository' },
       { cmd: 'duo "task prompt"', desc: isEn ? 'Execute a task directly' : 'Thực thi một task trực tiếp' },
       { cmd: 'duo -p "task prompt"', desc: isEn ? 'Plan-only mode (.duo/plan.md)' : 'Chỉ lên kế hoạch, lưu vào .duo/plan.md' },
       { cmd: 'duo -y "task prompt"', desc: isEn ? 'Auto-accept mode' : 'Chế độ tự động hoàn toàn' },

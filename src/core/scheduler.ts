@@ -26,7 +26,8 @@ export class DAGScheduler {
   async executePlan(
     plan: Plan,
     callbacks?: Partial<StepProgressCallback>,
-    cwd: string = process.cwd()
+    cwd: string = process.cwd(),
+    projectRules?: string
   ): Promise<{ success: boolean; completedSteps: number; totalSteps: number }> {
     const steps = [...plan.dag];
     const completedStepIds = new Set<string>();
@@ -81,7 +82,7 @@ export class DAGScheduler {
 
         try {
           const blackboardSummary = this.blackboard.getSummaryForWorker();
-          const result = await this.builder.executeStep(step, blackboardSummary, cwd);
+          const result = await this.builder.executeStep(step, blackboardSummary, cwd, projectRules);
 
           if (result.success) {
             step.status = 'completed';

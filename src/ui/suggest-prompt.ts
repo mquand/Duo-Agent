@@ -19,6 +19,7 @@ export interface SlashCommandItem {
 export const SLASH_COMMANDS_LIST: SlashCommandItem[] = [
   { name: '/help', desc: 'Tra cứu lệnh & trợ giúp' },
   { name: '/model', desc: 'Đổi AI model (Claude 5.5, GPT-6...)' },
+  { name: '/rules', desc: 'Xem hoặc cấu hình quy ước repo (.duorules)' },
   { name: '/effort', desc: 'Chỉnh mức độ suy luận / Thinking Effort (low, medium, high)' },
   { name: '/benchmark', desc: 'Chạy đối chuẩn hiệu năng & chi phí (Sandwich vs Monolith)' },
   { name: '/theme', desc: 'Đổi giao diện màu sắc Terminal' },
@@ -43,6 +44,7 @@ export const SLASH_COMMANDS_LIST: SlashCommandItem[] = [
 export const SLASH_COMMANDS_DESC_EN: Record<string, string> = {
   '/help': 'Display command reference',
   '/model': 'Switch AI models (Claude 5.5, GPT-6...)',
+  '/rules': 'View or configure repo guidelines (.duorules)',
   '/effort': 'Set reasoning effort / thinking budget',
   '/benchmark': 'Run empirical benchmark (Sandwich vs Monolith)',
   '/theme': 'Select terminal color theme',
