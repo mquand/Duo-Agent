@@ -13,6 +13,7 @@ export interface AppConfig {
     builder: RoleConfig;
     auditor: RoleConfig;
   };
+  language?: 'en' | 'vi';
   telemetry?: boolean;
 }
 

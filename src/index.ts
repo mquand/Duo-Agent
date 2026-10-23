@@ -16,6 +16,7 @@ import { Blackboard } from './core/blackboard.js';
 import { DAGScheduler } from './core/scheduler.js';
 import { SessionManager } from './core/session.js';
 import { ActivityLogger, ActivityMonitor } from './core/monitor.js';
+import { i18n } from './ui/i18n.js';
 import { ProviderFactory } from './providers/factory.js';
 import { ArchitectAgent } from './agents/architect.js';
 import { BuilderAgent } from './agents/builder.js';
@@ -265,17 +266,14 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
     }
 
     if (trimmed === '/help') {
-      console.log(chalk.yellow('\nCác lệnh slash có sẵn:'));
-      console.log('  /sessions              : Danh sách tất cả các phiên làm việc');
-      console.log('  /switch <id|tên>       : Chuyển sang phiên làm việc khác');
-      console.log('  /new <tên>             : Tạo một phiên làm việc mới');
-      console.log('  /session               : Xem chi tiết tiến độ của phiên hiện tại');
-      console.log('  /model, /change_model  : Đổi model cho Architect, Builder, hoặc Auditor');
-      console.log('  /plan <nội dung task>  : Lập kế hoạch chi tiết mà không sửa code');
-      console.log('  /diff                  : Xem git diff hiện tại');
-      console.log('  /undo                  : Rollback thay đổi');
-      console.log('  /config                : Hiển thị file config');
-      console.log('  /exit, /quit           : Thoát phiên làm việc\n');
+      i18n.printHelp();
+      continue;
+    }
+
+    if (trimmed === '/lang' || trimmed === '/language') {
+      config = await SecurityPrompts.promptSelectLanguage(config);
+      i18n.setLanguage(config.language || 'vi');
+      await ConfigManager.saveConfig(config);
       continue;
     }
 
@@ -366,6 +364,36 @@ program
   });
 
 program
+  .command('lang [language]')
+  .description('Thiết lập hoặc chuyển đổi ngôn ngữ giao diện (en / vi)')
+  .action(async (langArg) => {
+    let config = await ConfigManager.loadConfig();
+    if (langArg === 'en' || langArg === 'vi') {
+      config.language = langArg;
+      await ConfigManager.saveConfig(config);
+      console.log(
+        chalk.green(
+          langArg === 'en'
+            ? 'Interface language set to English!'
+            : 'Đã thiết lập ngôn ngữ giao diện sang Tiếng Việt!'
+        )
+      );
+    } else {
+      config = await SecurityPrompts.promptSelectLanguage(config);
+      await ConfigManager.saveConfig(config);
+    }
+  });
+
+program
+  .command('help')
+  .description('Hiển thị bảng tra cứu lệnh chi tiết và hướng dẫn sử dụng')
+  .action(async () => {
+    const config = await ConfigManager.loadConfig();
+    i18n.setLanguage(config.language || 'vi');
+    i18n.printHelp();
+  });
+
+program
   .name('duo')
   .description('Universal Multi-Agent Orchestrator: Architect, Builder, Auditor (Pluggable AI Models)')
   .version('1.0.0')
@@ -401,6 +429,7 @@ program
 
     // Load Configuration
     let config = await ConfigManager.loadConfig();
+    i18n.setLanguage(config.language || 'vi');
     const missingKeys = ConfigManager.getMissingKeys(config);
 
     if (missingKeys.length > 0) {

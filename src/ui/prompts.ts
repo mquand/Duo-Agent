@@ -169,4 +169,29 @@ export class SecurityPrompts {
     console.log(chalk.green(`\n✔ Đã cập nhật ${targetRole} sang model: ${chalk.bold(newModel)} (${providerChoice})`));
     return updatedConfig;
   }
+
+  static async promptSelectLanguage(config: AppConfig): Promise<AppConfig> {
+    const langChoice = await select({
+      message: 'Chọn ngôn ngữ giao diện (Select interface language):',
+      default: config.language || 'vi',
+      choices: [
+        { name: '🇻🇳 Tiếng Việt', value: 'vi' },
+        { name: '🇬🇧 English', value: 'en' },
+      ],
+    });
+
+    const updatedConfig: AppConfig = {
+      ...config,
+      language: langChoice as 'en' | 'vi',
+    };
+
+    console.log(
+      chalk.green(
+        langChoice === 'en'
+          ? '\n✔ Interface language set to English!'
+          : '\n✔ Đã thiết lập ngôn ngữ giao diện sang Tiếng Việt!'
+      )
+    );
+    return updatedConfig;
+  }
 }

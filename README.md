@@ -97,6 +97,8 @@ duo [Default] > /new auth-flow          # Create and switch to a fresh, clean se
 duo [auth-flow] > /switch db-pool       # Switch back to an existing session
 duo [db-pool] > /session                # View current session progress & completed tasks
 duo [db-pool] > /model                  # Interactively switch models for any role
+duo [db-pool] > /lang                   # Switch interface language (English / Tiếng Việt)
+duo [db-pool] > /help                   # View full command reference and guide
 duo [db-pool] > /plan Add caching layer # Generate plan without editing files
 duo [db-pool] > /diff                   # View current git diff
 duo [db-pool] > /undo                   # Roll back changes to the initial checkpoint
