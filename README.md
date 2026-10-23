@@ -20,6 +20,7 @@
   <a href="#usage">Usage</a> •
   <a href="#configuration">Configuration</a> •
   <a href="#command-reference">Commands</a> •
+  <a href="docs/API.md">API Reference</a> •
   <a href="#vietnamese">Tài liệu tiếng Việt</a>
 </p>
 

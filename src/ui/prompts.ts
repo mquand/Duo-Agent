@@ -179,19 +179,19 @@ export class SecurityPrompts {
   }
 
   static async promptOnboarding(): Promise<AppConfig> {
-    console.log(chalk.white.bold('\nDuo Setup\nSelect model configuration:\n'));
+    console.log(chalk.white.bold('\nDuo Setup\n'));
 
-    const presetChoice = await select({
-      message: 'Configuration preset:',
+    const configMode = await select({
+      message: 'Configuration mode:',
       choices: [
-        { name: 'Claude 5.5 Flagship (Opus 5.5 + Gemini Flash + Sonnet 5.5)', value: 'flagship' },
-        { name: 'OpenAI GPT-6 (GPT-6 Astra + GPT-6 Luna + GPT-6 Sol)', value: 'gpt6' },
-        { name: 'Balanced (Claude Sonnet 5.5 + Gemini Flash + Sonnet 5.5)', value: 'balanced' },
-        { name: 'DeepSeek (R1 + V3 + R1)', value: 'deepseek' },
-        { name: 'Codestral (Claude + Codestral)', value: 'codestral' },
-        { name: 'Groq Speed (Claude Sonnet 5.5 + Llama 3.3)', value: 'fast' },
-        { name: 'Local Offline (Ollama)', value: 'offline' },
-        { name: 'Custom configuration', value: 'custom' },
+        {
+          name: `${chalk.bold.yellow('⭐ Recommended Presets')}  ${chalk.gray('(Pre-optimized agent trios: Claude, Balanced, Offline Ollama, DeepSeek...)')}`,
+          value: 'recommended',
+        },
+        {
+          name: `${chalk.bold.cyan('🛠️  Custom Configuration')} ${chalk.gray('(Individually configure Architect, Builder, and Auditor)')}`,
+          value: 'custom',
+        },
       ],
     });
 
@@ -199,75 +199,113 @@ export class SecurityPrompts {
     let builderConfig: RoleConfig;
     let auditorConfig: RoleConfig;
 
-    if (presetChoice === 'flagship') {
-      architectConfig = { provider: 'anthropic', model: 'claude-opus-5-5' };
-      builderConfig = { provider: 'google', model: 'gemini-2.0-flash' };
-      auditorConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
-    } else if (presetChoice === 'gpt6') {
-      architectConfig = { provider: 'openai-compatible', model: 'gpt-6-astra' };
-      builderConfig = { provider: 'openai-compatible', model: 'gpt-6-luna' };
-      auditorConfig = { provider: 'openai-compatible', model: 'gpt-6.1-sol' };
-    } else if (presetChoice === 'balanced') {
-      architectConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
-      builderConfig = { provider: 'google', model: 'gemini-2.0-flash' };
-      auditorConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
-    } else if (presetChoice === 'codestral') {
-      architectConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
-      builderConfig = {
-        provider: 'openai-compatible',
-        model: 'codestral-latest',
-        baseURL: 'https://api.mistral.ai/v1',
-      };
-      auditorConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
-    } else if (presetChoice === 'deepseek') {
-      architectConfig = {
-        provider: 'openai-compatible',
-        model: 'deepseek-reasoner',
-        baseURL: 'https://api.deepseek.com/v1',
-      };
-      builderConfig = {
-        provider: 'openai-compatible',
-        model: 'deepseek-chat',
-        baseURL: 'https://api.deepseek.com/v1',
-      };
-      auditorConfig = {
-        provider: 'openai-compatible',
-        model: 'deepseek-reasoner',
-        baseURL: 'https://api.deepseek.com/v1',
-      };
-    } else if (presetChoice === 'fast') {
-      architectConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
-      builderConfig = {
-        provider: 'openai-compatible',
-        model: 'llama-3.3-70b-versatile',
-        baseURL: 'https://api.groq.com/openai/v1',
-      };
-      auditorConfig = { provider: 'anthropic', model: 'claude-haiku-5-5' };
-    } else if (presetChoice === 'offline') {
-      console.log(chalk.green('\n+ Configured for Local Offline (Ollama) - No API keys required!\n'));
-      return {
-        roles: {
-          architect: {
-            provider: 'openai-compatible',
-            model: 'deepseek-r1:14b',
-            baseURL: 'http://localhost:11434/v1',
-            apiKey: 'not-needed-for-local',
+    if (configMode === 'recommended') {
+      const presetChoice = await select({
+        message: 'Select Recommended Preset:',
+        choices: [
+          {
+            name: `${chalk.bold.cyan('Claude 5.5 Flagship')}   ${chalk.gray('Architect: Opus 5.5 | Builder: Gemini Flash | Auditor: Sonnet 5.5')}`,
+            value: 'flagship',
           },
-          builder: {
-            provider: 'openai-compatible',
-            model: 'qwen2.5-coder:32b',
-            baseURL: 'http://localhost:11434/v1',
-            apiKey: 'not-needed-for-local',
+          {
+            name: `${chalk.bold.green('Balanced Duo')}         ${chalk.gray('Architect: Sonnet 5.5 | Builder: Gemini Flash | Auditor: Sonnet 5.5')}`,
+            value: 'balanced',
           },
-          auditor: {
-            provider: 'openai-compatible',
-            model: 'deepseek-r1:14b',
-            baseURL: 'http://localhost:11434/v1',
-            apiKey: 'not-needed-for-local',
+          {
+            name: `${chalk.bold.yellow('Local Offline (Ollama)')} ${chalk.gray('Architect: DeepSeek-R1 14B | Builder: Qwen2.5 32B | Auditor: R1 (100% Free)')}`,
+            value: 'offline',
           },
-        },
-      };
+          {
+            name: `${chalk.bold.magenta('DeepSeek Pure')}       ${chalk.gray('Architect: DeepSeek R1 | Builder: DeepSeek V3 | Auditor: DeepSeek R1')}`,
+            value: 'deepseek',
+          },
+          {
+            name: `${chalk.bold.blue('OpenAI Ecosystem')}     ${chalk.gray('Architect: GPT-6 Astra / o3-mini | Builder: GPT-6 Luna | Auditor: Sol')}`,
+            value: 'gpt6',
+          },
+          {
+            name: `${chalk.bold.hex('#FF8800')('Groq Ultra Speed')}     ${chalk.gray('Architect: Sonnet 5.5 | Builder: Llama 3.3 70B (Groq) | Auditor: Haiku')}`,
+            value: 'fast',
+          },
+          {
+            name: `${chalk.bold.white('Codestral Specialized')} ${chalk.gray('Architect: Sonnet 5.5 | Builder: Codestral (Mistral) | Auditor: Sonnet')}`,
+            value: 'codestral',
+          },
+        ],
+      });
+
+      if (presetChoice === 'flagship') {
+        architectConfig = { provider: 'anthropic', model: 'claude-opus-5-5' };
+        builderConfig = { provider: 'google', model: 'gemini-2.0-flash' };
+        auditorConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
+      } else if (presetChoice === 'gpt6') {
+        architectConfig = { provider: 'openai-compatible', model: 'gpt-6-astra' };
+        builderConfig = { provider: 'openai-compatible', model: 'gpt-6-luna' };
+        auditorConfig = { provider: 'openai-compatible', model: 'gpt-6.1-sol' };
+      } else if (presetChoice === 'balanced') {
+        architectConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
+        builderConfig = { provider: 'google', model: 'gemini-2.0-flash' };
+        auditorConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
+      } else if (presetChoice === 'codestral') {
+        architectConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
+        builderConfig = {
+          provider: 'openai-compatible',
+          model: 'codestral-latest',
+          baseURL: 'https://api.mistral.ai/v1',
+        };
+        auditorConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
+      } else if (presetChoice === 'deepseek') {
+        architectConfig = {
+          provider: 'openai-compatible',
+          model: 'deepseek-reasoner',
+          baseURL: 'https://api.deepseek.com/v1',
+        };
+        builderConfig = {
+          provider: 'openai-compatible',
+          model: 'deepseek-chat',
+          baseURL: 'https://api.deepseek.com/v1',
+        };
+        auditorConfig = {
+          provider: 'openai-compatible',
+          model: 'deepseek-reasoner',
+          baseURL: 'https://api.deepseek.com/v1',
+        };
+      } else if (presetChoice === 'fast') {
+        architectConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
+        builderConfig = {
+          provider: 'openai-compatible',
+          model: 'llama-3.3-70b-versatile',
+          baseURL: 'https://api.groq.com/openai/v1',
+        };
+        auditorConfig = { provider: 'anthropic', model: 'claude-haiku-5-5' };
+      } else {
+        // offline
+        console.log(chalk.green('\n+ Configured for Local Offline (Ollama) - No API keys required!\n'));
+        return {
+          roles: {
+            architect: {
+              provider: 'openai-compatible',
+              model: 'deepseek-r1:14b',
+              baseURL: 'http://localhost:11434/v1',
+              apiKey: 'not-needed-for-local',
+            },
+            builder: {
+              provider: 'openai-compatible',
+              model: 'qwen2.5-coder:32b',
+              baseURL: 'http://localhost:11434/v1',
+              apiKey: 'not-needed-for-local',
+            },
+            auditor: {
+              provider: 'openai-compatible',
+              model: 'deepseek-r1:14b',
+              baseURL: 'http://localhost:11434/v1',
+              apiKey: 'not-needed-for-local',
+            },
+          },
+        };
+      }
     } else {
+      console.log(chalk.cyan('\nCustom Configuration:'));
       architectConfig = await this.selectOrCustomModel('Architect', POPULAR_ARCHITECT_MODELS);
       builderConfig = await this.selectOrCustomModel('Builder', POPULAR_BUILDER_MODELS);
       auditorConfig = await this.selectOrCustomModel('Auditor', POPULAR_AUDITOR_MODELS);
@@ -364,23 +402,36 @@ export class SecurityPrompts {
   }
 
   static async promptChangeModel(config: AppConfig): Promise<AppConfig> {
-    const roleChoice = await select({
-      message: 'Select role to change model:',
+    const modeChoice = await select({
+      message: 'Model configuration mode:',
       choices: [
-        { name: 'All Roles (Switch to a full preset: Ollama Local, Claude, GPT-6...)', value: 'all' },
-        { name: `Architect (${config.roles.architect.model})`, value: 'architect' },
-        { name: `Builder (${config.roles.builder.model})`, value: 'builder' },
-        { name: `Auditor (${config.roles.auditor.model})`, value: 'auditor' },
+        {
+          name: `${chalk.bold.yellow('⭐ Recommended Presets')}  ${chalk.gray('(Switch all roles to a curated preset: Claude, Balanced, Local Ollama, DeepSeek...)')}`,
+          value: 'preset',
+        },
+        {
+          name: `${chalk.bold.cyan('🛠️  Custom Role Setup')}    ${chalk.gray('(Customize Architect, Builder, or Auditor individually)')}`,
+          value: 'role',
+        },
       ],
     });
 
-    if (roleChoice === 'all') {
+    if (modeChoice === 'preset') {
       const newConfig = await this.promptOnboarding();
       return {
         ...config,
         roles: newConfig.roles,
       };
     }
+
+    const roleChoice = await select({
+      message: 'Select role to customize:',
+      choices: [
+        { name: `Architect (${config.roles.architect.model}) [${config.roles.architect.provider}]`, value: 'architect' },
+        { name: `Builder (${config.roles.builder.model}) [${config.roles.builder.provider}]`, value: 'builder' },
+        { name: `Auditor (${config.roles.auditor.model}) [${config.roles.auditor.provider}]`, value: 'auditor' },
+      ],
+    });
 
     const targetRole = roleChoice as 'architect' | 'builder' | 'auditor';
     let options: ModelOption[];
