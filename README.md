@@ -60,7 +60,7 @@ npx duo-agent "Add JWT token validation middleware"
 
 #### Install Globally
 ```bash
-git clone https://github.com/mquand/D-U-O---A-G-E-N-T-.git duo-agent
+git clone https://github.com/mquand/Duo-Agent.git duo-agent
 cd duo-agent
 npm install
 npm run build
