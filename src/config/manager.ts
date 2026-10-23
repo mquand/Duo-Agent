@@ -6,6 +6,16 @@ import { AppConfig, RoleConfig } from '../types/index.js';
 
 dotenv.config();
 
+// Also load ~/.duo/.env or ~/.env if they exist
+const globalDuoEnv = path.join(os.homedir(), '.duo', '.env');
+if (fs.existsSync(globalDuoEnv)) {
+  dotenv.config({ path: globalDuoEnv, override: false });
+}
+const userHomeEnv = path.join(os.homedir(), '.env');
+if (fs.existsSync(userHomeEnv)) {
+  dotenv.config({ path: userHomeEnv, override: false });
+}
+
 const GLOBAL_CONFIG_DIR = path.join(os.homedir(), '.duo');
 const GLOBAL_CONFIG_FILE = path.join(GLOBAL_CONFIG_DIR, 'config.json');
 const LOCAL_CONFIG_FILE = path.join(process.cwd(), '.duorc');
