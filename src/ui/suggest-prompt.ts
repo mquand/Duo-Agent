@@ -20,6 +20,11 @@ export const SLASH_COMMANDS_LIST: SlashCommandItem[] = [
   { name: '/model', desc: 'Đổi AI model (Claude 5.5, GPT-6...)' },
   { name: '/theme', desc: 'Đổi giao diện màu sắc Terminal' },
   { name: '/lang', desc: 'Đổi ngôn ngữ giao diện (en / vi)' },
+  { name: '/cost', desc: 'Thống kê chi phí & tokens của phiên' },
+  { name: '/commit', desc: 'Tự động tạo commit message & commit vào Git' },
+  { name: '/add', desc: 'Ghim file hoặc thư mục vào ngữ cảnh' },
+  { name: '/paste', desc: 'Chế độ dán nhiều dòng (Multi-line paste)' },
+  { name: '/compact', desc: 'Nén và tóm tắt lịch sử task của phiên' },
   { name: '/sessions', desc: 'Xem danh sách các phiên làm việc' },
   { name: '/new', desc: 'Tạo phiên làm việc mới' },
   { name: '/switch', desc: 'Chuyển sang phiên làm việc khác' },
@@ -35,12 +40,14 @@ export const SLASH_COMMANDS_LIST: SlashCommandItem[] = [
 export interface SuggestPromptConfig {
   message: string;
   isEn?: boolean;
+  history?: string[];
 }
 
 export const promptWithSuggestions = createPrompt<string, SuggestPromptConfig>((config, done) => {
   const [value, setValue] = useState('');
   const [status, setStatus] = useState<'idle' | 'done'>('idle');
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [historyIndex, setHistoryIndex] = useState<number>(-1);
 
   // Compute matching commands if typing a slash command
   let matches: SlashCommandItem[] = [];
@@ -56,7 +63,6 @@ export const promptWithSuggestions = createPrompt<string, SuggestPromptConfig>((
     if (status !== 'idle') return;
 
     if (isEnterKey(key)) {
-      // If user navigated suggestions with arrows and pressed Enter on a partial word
       let finalAnswer = rl.line || value;
       if (
         value.startsWith('/') &&
@@ -78,20 +84,49 @@ export const promptWithSuggestions = createPrompt<string, SuggestPromptConfig>((
         setSelectedIndex(0);
       }
     } else if (isDownKey(key)) {
-      if (matches.length > 0) {
+      if (value.startsWith('/') && matches.length > 0) {
         setSelectedIndex((selectedIndex + 1) % matches.length);
+      } else if (config.history && config.history.length > 0) {
+        // Navigate forward in prompt history
+        if (historyIndex !== -1) {
+          const nextIndex = historyIndex + 1;
+          if (nextIndex >= config.history.length) {
+            setHistoryIndex(-1);
+            setValue('');
+            rl.clearLine(0);
+          } else {
+            setHistoryIndex(nextIndex);
+            const entry = config.history[nextIndex];
+            setValue(entry);
+            rl.clearLine(0);
+            rl.write(entry);
+          }
+        }
       }
     } else if (isUpKey(key)) {
-      if (matches.length > 0) {
+      if (value.startsWith('/') && matches.length > 0) {
         setSelectedIndex((selectedIndex - 1 + matches.length) % matches.length);
+      } else if (config.history && config.history.length > 0) {
+        // Navigate backward in prompt history
+        const nextIndex =
+          historyIndex === -1
+            ? config.history.length - 1
+            : Math.max(0, historyIndex - 1);
+        setHistoryIndex(nextIndex);
+        const entry = config.history[nextIndex];
+        setValue(entry);
+        rl.clearLine(0);
+        rl.write(entry);
       }
     } else if (isBackspaceKey(key)) {
       const next = rl.line;
       setValue(next);
       setSelectedIndex(0);
+      setHistoryIndex(-1);
     } else {
       setValue(rl.line);
       setSelectedIndex(0);
+      setHistoryIndex(-1);
     }
   });
 

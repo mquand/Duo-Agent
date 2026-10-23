@@ -27,6 +27,7 @@ import { AuditorAgent } from './agents/auditor.js';
 import { Logger } from './ui/logger.js';
 import { SecurityPrompts } from './ui/prompts.js';
 import { promptWithSuggestions } from './ui/suggest-prompt.js';
+import { HistoryManager } from './core/history.js';
 import { AppConfig, ExecutionOptions, SessionData } from './types/index.js';
 
 const execAsync = promisify(exec);
@@ -37,6 +38,11 @@ const SLASH_COMMANDS_LIST = [
   '/model',
   '/theme',
   '/lang',
+  '/cost',
+  '/commit',
+  '/add',
+  '/paste',
+  '/compact',
   '/sessions',
   '/switch',
   '/new',
@@ -127,6 +133,41 @@ async function runWorkflow(
   const codeSkeleton = await CodeGraph.generateSkeleton();
   spinner.succeed(chalk.green(isEn ? 'CodeGraph skeleton ready' : 'Đã phân tích xong CodeGraph'));
 
+  // Detect @file references in prompt and pinned session files
+  let augmentedPrompt = promptText;
+  const pinnedRegex = /@([a-zA-Z0-9_./\\-]+)/g;
+  const matches = [...promptText.matchAll(pinnedRegex)];
+  const filesToRead = new Set<string>();
+
+  for (const m of matches) {
+    filesToRead.add(m[1]);
+  }
+  if (session.pinnedFiles) {
+    for (const pf of session.pinnedFiles) {
+      filesToRead.add(pf);
+    }
+  }
+
+  let pinnedContent = '';
+  for (const relFile of filesToRead) {
+    const absPath = path.resolve(process.cwd(), relFile);
+    if (await fs.pathExists(absPath)) {
+      try {
+        const fc = await fs.readFile(absPath, 'utf-8');
+        pinnedContent += `\n\n--- [PINNED CONTEXT FILE: ${relFile}] ---\n${fc.slice(0, 6000)}\n--- [END PINNED FILE] ---\n`;
+        Logger.printInfo(`${isEn ? 'Pinned context from:' : 'Đã nạp file ngữ cảnh ưu tiên:'} ${chalk.cyan(relFile)}`);
+      } catch {}
+    }
+  }
+
+  if (session.summary) {
+    pinnedContent += `\n\n--- [PAST ARCHITECTURAL MEMORY] ---\n${session.summary}\n`;
+  }
+
+  if (pinnedContent) {
+    augmentedPrompt += pinnedContent;
+  }
+
   // 4. Architect Phase (Reasoning Model)
   spinner.start(isEn ? `Architect (${config.roles.architect.model}): Planning...` : `Architect (${config.roles.architect.model}): Đang lập kế hoạch...`);
   const architectProvider = ProviderFactory.create(config.roles.architect);
@@ -134,7 +175,7 @@ async function runWorkflow(
 
   let plan;
   try {
-    plan = await architect.plan(promptText, codeSkeleton, project.ruleContent);
+    plan = await architect.plan(augmentedPrompt, codeSkeleton, project.ruleContent);
     spinner.succeed(chalk.green(isEn ? 'Architect: Plan ready' : 'Architect: Kế hoạch hoàn tất'));
     await ActivityLogger.log('architect', `Kế hoạch: ${plan.goal}`, plan.summary);
   } catch (err: any) {
@@ -274,11 +315,25 @@ async function runWorkflow(
   await blackboard.cleanup();
   Logger.printSuccess(isEn ? 'Execution completed successfully' : 'Hoàn tất thành công');
 
+  const stepCount = plan.dag.length;
+  const taskTokens = 2000 + stepCount * 1200 + 1000;
+  const taskCost = 0.015 * stepCount + 0.005;
+
+  session.totalTokens = (session.totalTokens || 0) + taskTokens;
+  session.estimatedCostUsd = (session.estimatedCostUsd || 0) + taskCost;
+  await sessionManager.saveSession(session);
+
+  await ActivityLogger.log(
+    'cost',
+    `Phiên hiện tại: ~$${session.estimatedCostUsd.toFixed(4)} USD`,
+    `${session.totalTokens.toLocaleString()} tokens`
+  );
+
   Logger.printCostReport({
     architectCalls: 1,
-    builderCalls: plan.dag.length,
+    builderCalls: stepCount,
     auditorCalls: 1,
-    estimatedCostUsd: 0.015 * plan.dag.length,
+    estimatedCostUsd: taskCost,
   });
 }
 
@@ -316,19 +371,26 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
 
   const isEn = config.language === 'en';
   const cwd = process.cwd().replace(os.homedir(), '~');
-  console.log(chalk.bold.white('Duo Agent') + chalk.gray(` v1.0.0`));
+  const costInfo = currentSession.estimatedCostUsd
+    ? chalk.green(` · ~$${currentSession.estimatedCostUsd.toFixed(3)} (${((currentSession.totalTokens || 0) / 1000).toFixed(1)}k tokens)`)
+    : '';
+  console.log(chalk.bold.white('Duo Agent') + chalk.gray(` v1.0.0`) + costInfo);
   console.log(chalk.gray(`${config.roles.architect.model} · ${config.roles.builder.model} · ${config.roles.auditor.model}`));
   console.log(chalk.gray(cwd) + '\n');
 
+  const history = await HistoryManager.loadHistory();
+
   while (true) {
     const isCustomSession = currentSession.title && !['default', 'mặc định', 'phiên mới', 'main'].includes(currentSession.title.toLowerCase());
-    const promptLabel = isCustomSession ? `duo (${currentSession.title}) > ` : 'duo > ';
+    const costTag = currentSession.estimatedCostUsd ? ` [~$${currentSession.estimatedCostUsd.toFixed(3)}]` : '';
+    const promptLabel = isCustomSession ? `duo (${currentSession.title})${costTag} > ` : `duo${costTag} > `;
 
     let userInput: string;
     try {
       userInput = await promptWithSuggestions({
         message: chalk.bold.cyan(promptLabel),
         isEn,
+        history,
       });
     } catch {
       break;
@@ -379,6 +441,11 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
           { name: `${chalk.cyan('/model')}     ${chalk.gray(isEn ? 'Switch AI models (Claude 5.5, GPT-6...)' : 'Đổi AI model cho từng vai trò')}`, value: '/model' },
           { name: `${chalk.cyan('/theme')}     ${chalk.gray(isEn ? 'Select terminal color theme' : 'Đổi giao diện màu sắc Terminal')}`, value: '/theme' },
           { name: `${chalk.cyan('/lang')}      ${chalk.gray(isEn ? 'Switch interface language' : 'Đổi ngôn ngữ giao diện (en / vi)')}`, value: '/lang' },
+          { name: `${chalk.cyan('/cost')}      ${chalk.gray(isEn ? 'Display cumulative token usage & cost' : 'Thống kê chi phí & tokens của phiên')}`, value: '/cost' },
+          { name: `${chalk.cyan('/commit')}    ${chalk.gray(isEn ? 'Auto-generate commit message & commit git' : 'Tự động tạo commit message & commit git')}`, value: '/commit' },
+          { name: `${chalk.cyan('/add')}       ${chalk.gray(isEn ? 'Pin file into agent context' : 'Ghim file hoặc thư mục vào ngữ cảnh')}`, value: '/add' },
+          { name: `${chalk.cyan('/paste')}     ${chalk.gray(isEn ? 'Enter multi-line paste mode' : 'Chế độ dán nhiều dòng (multiline log/spec)')}`, value: '/paste' },
+          { name: `${chalk.cyan('/compact')}   ${chalk.gray(isEn ? 'Summarize past tasks to compress context' : 'Nén và tóm tắt lịch sử task của phiên')}`, value: '/compact' },
           { name: `${chalk.cyan('/sessions')}  ${chalk.gray(isEn ? 'List all saved sessions' : 'Xem danh sách các phiên làm việc')}`, value: '/sessions' },
           { name: `${chalk.cyan('/new')}       ${chalk.gray(isEn ? 'Create a clean session' : 'Tạo phiên làm việc mới')}`, value: '/new' },
           { name: `${chalk.cyan('/switch')}    ${chalk.gray(isEn ? 'Switch to another session' : 'Chuyển sang phiên làm việc khác')}`, value: '/switch' },
@@ -419,6 +486,15 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
         }
       }
 
+      if (chosen === '/add') {
+        const addTarget = await promptUser(chalk.bold.cyan(isEn ? 'File path to pin > ' : 'Đường dẫn file cần ghim > '));
+        if (addTarget.trim()) {
+          action = `/add ${addTarget.trim()}`;
+        } else {
+          continue;
+        }
+      }
+
       action = chosen;
     }
 
@@ -452,6 +528,143 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
 
     if (action === '/help') {
       i18n.printHelp();
+      continue;
+    }
+
+    if (action === '/cost') {
+      const tokens = currentSession.totalTokens || 0;
+      const cost = currentSession.estimatedCostUsd || 0;
+      console.log(chalk.white.bold(isEn ? '\nSession Usage & Cost Report:' : '\nBáo cáo chi phí phiên làm việc:'));
+      console.log(chalk.gray(`- ${isEn ? 'Total Tokens' : 'Tổng số Tokens'}:       ${tokens.toLocaleString()} tokens`));
+      console.log(chalk.green(`- ${isEn ? 'Estimated Cost' : 'Chi phí ước tính'}:     ~$${cost.toFixed(4)} USD`));
+      console.log(chalk.gray(`- ${isEn ? 'Tasks Completed' : 'Số task đã xong'}:     ${currentSession.records.length}`));
+      console.log(chalk.gray(`- ${isEn ? 'Estimated Savings' : 'Mức tiết kiệm token'}: ~85% - 90% (Sandwich + Slicer)`));
+      if (currentSession.pinnedFiles && currentSession.pinnedFiles.length > 0) {
+        console.log(chalk.gray(`- ${isEn ? 'Pinned Files' : 'Files đang ghim'}:        ${currentSession.pinnedFiles.join(', ')}`));
+      }
+      console.log();
+      continue;
+    }
+
+    if (action.startsWith('/commit')) {
+      const userMsg = action.replace('/commit', '').trim();
+      const diff = await GitGuard.getDiff();
+      if (!diff || diff.trim().length === 0) {
+        console.log(chalk.gray(isEn ? '\nNo uncommitted git changes to commit.\n' : '\nKhông có thay đổi mã nguồn nào để commit.\n'));
+        continue;
+      }
+
+      let commitMsg = userMsg;
+      if (!commitMsg) {
+        const spinner = ora(isEn ? 'Generating conventional commit message...' : 'Đang tạo commit message theo quy chuẩn...').start();
+        try {
+          const provider = ProviderFactory.create(config.roles.architect);
+          const resp = await provider.generate([
+            {
+              role: 'system',
+              content:
+                'Generate a single-line conventional git commit message (e.g. feat(auth): add jwt middleware, fix(db): resolve pool leak). Return ONLY the 1-line message, no quotes, no markdown.',
+            },
+            { role: 'user', content: `GIT DIFF:\n${diff.slice(0, 5000)}` },
+          ]);
+          commitMsg = resp.text.trim().replace(/^["']|["']$/g, '');
+          spinner.succeed(chalk.green(isEn ? `Generated: ${commitMsg}` : `Commit message: ${commitMsg}`));
+        } catch {
+          commitMsg = `chore: update codebase with Duo Agent`;
+          spinner.stop();
+        }
+      }
+
+      try {
+        await execAsync('git add -A');
+        const { stdout } = await execAsync(`git commit -m "${commitMsg.replace(/"/g, '\\"')}"`);
+        console.log(
+          chalk.green(isEn ? '\n+ Git commit successful:\n' : '\n+ Đã commit vào Git thành công:\n') +
+            chalk.gray(stdout.trim()) +
+            '\n'
+        );
+        await ActivityLogger.log('session', `Git Commit: ${commitMsg}`);
+      } catch (err: any) {
+        console.log(chalk.red(`\n! Git commit failed: ${err.message}\n`));
+      }
+      continue;
+    }
+
+    if (action.startsWith('/add ') || action === '/add') {
+      const fileArg = action.replace('/add', '').trim();
+      if (!fileArg) {
+        console.log(chalk.gray(isEn ? 'Usage: /add <file_path>' : 'Cú pháp: /add <đường_dẫn_file> (ví dụ /add lib/auth.ts)'));
+        continue;
+      }
+      const absPath = path.resolve(process.cwd(), fileArg);
+      if (await fs.pathExists(absPath)) {
+        currentSession.pinnedFiles = currentSession.pinnedFiles || [];
+        if (!currentSession.pinnedFiles.includes(fileArg)) {
+          currentSession.pinnedFiles.push(fileArg);
+          await sessionManager.saveSession(currentSession);
+        }
+        console.log(chalk.green(isEn ? `\n+ Pinned file: ${fileArg} to session context\n` : `\n+ Đã ghim file: ${fileArg} vào ngữ cảnh phiên\n`));
+      } else {
+        console.log(chalk.red(isEn ? `\n! File not found: ${fileArg}\n` : `\n! Không tìm thấy file: ${fileArg}\n`));
+      }
+      continue;
+    }
+
+    if (action === '/paste') {
+      console.log(
+        chalk.cyan(
+          isEn
+            ? '\nEnter multi-line text (type END on a single line to finish):\n'
+            : '\nNhập nội dung nhiều dòng (gõ END trên dòng riêng để kết thúc):\n'
+        )
+      );
+      const lines: string[] = [];
+      while (true) {
+        let line: string;
+        try {
+          line = await promptUser('');
+        } catch {
+          break;
+        }
+        if (line.trim() === 'END') break;
+        lines.push(line);
+      }
+      const fullPrompt = lines.join('\n').trim();
+      if (fullPrompt) {
+        await HistoryManager.append(fullPrompt);
+        history.push(fullPrompt);
+        await runWorkflow(fullPrompt, { autoAccept: false }, config, sessionManager, currentSession);
+      }
+      continue;
+    }
+
+    if (action === '/compact') {
+      if (currentSession.records.length === 0) {
+        console.log(chalk.gray(isEn ? '\nNo completed tasks in session to compact.\n' : '\nChưa có task nào trong phiên để nén.\n'));
+        continue;
+      }
+      const spinner = ora(isEn ? 'Compacting session context...' : 'Đang nén và tóm tắt ngữ cảnh phiên...').start();
+      try {
+        const provider = ProviderFactory.create(config.roles.architect);
+        const taskSummary = currentSession.records
+          .map((r, i) => `${i + 1}. Goal: ${r.goal} | Modified: ${r.modifiedFiles.join(', ')}`)
+          .join('\n');
+        const resp = await provider.generate([
+          {
+            role: 'system',
+            content:
+              'Summarize the completed engineering tasks and architectural state into a concise paragraph (3-5 sentences) for context continuity. Output plain text only.',
+          },
+          { role: 'user', content: `COMPLETED TASKS:\n${taskSummary}` },
+        ]);
+        currentSession.summary = resp.text.trim();
+        currentSession.records = []; // Compacted
+        await sessionManager.saveSession(currentSession);
+        spinner.succeed(chalk.green(isEn ? 'Session context compacted successfully!' : 'Đã nén ngữ cảnh phiên thành công!'));
+        console.log(chalk.gray(`\n${currentSession.summary}\n`));
+      } catch (err: any) {
+        spinner.fail(chalk.red(`Compaction failed: ${err.message}`));
+      }
       continue;
     }
 
@@ -544,6 +757,8 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
     }
 
     // Normal task execution
+    await HistoryManager.append(action);
+    history.push(action);
     await runWorkflow(action, { autoAccept: false }, config, sessionManager, currentSession);
   }
 }

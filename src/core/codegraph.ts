@@ -19,9 +19,24 @@ export class CodeGraph {
   ];
 
   static async scanFiles(cwd: string = process.cwd(), limit = 200): Promise<string[]> {
+    const ignorePatterns = [...this.IGNORE_PATTERNS];
+    const duoIgnorePath = path.join(cwd, '.duoignore');
+    if (await fs.pathExists(duoIgnorePath)) {
+      try {
+        const raw = await fs.readFile(duoIgnorePath, 'utf-8');
+        const custom = raw
+          .split('\n')
+          .map((l) => l.trim())
+          .filter((l) => l && !l.startsWith('#'));
+        ignorePatterns.push(...custom.map((p) => (p.includes('*') ? p : `**/${p}/**`)));
+      } catch {
+        // Ignore read errors
+      }
+    }
+
     const files = await fg(['**/*.*'], {
       cwd,
-      ignore: this.IGNORE_PATTERNS,
+      ignore: ignorePatterns,
       dot: false,
     });
     return files.slice(0, limit);

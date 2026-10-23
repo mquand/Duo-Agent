@@ -77,5 +77,9 @@ export interface SessionData {
   createdAt: string;
   updatedAt: string;
   checkpointRef?: string;
+  totalTokens?: number;
+  estimatedCostUsd?: number;
+  pinnedFiles?: string[];
+  summary?: string;
   records: SessionRecord[];
 }

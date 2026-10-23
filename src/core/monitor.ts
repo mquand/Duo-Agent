@@ -4,7 +4,7 @@ import chalk from 'chalk';
 
 export interface ActivityEvent {
   id: string;
-  type: 'architect' | 'builder' | 'diff' | 'test' | 'auditor' | 'session' | 'info';
+  type: 'architect' | 'builder' | 'diff' | 'test' | 'auditor' | 'session' | 'cost' | 'info';
   timestamp: string;
   title: string;
   details?: string;
@@ -145,8 +145,12 @@ export class ActivityMonitor {
         console.log(`${time} ${chalk.bold.white('[SESSION]')} ${chalk.white(event.title)}`);
         break;
 
+      case 'cost':
+        console.log(`${time} ${chalk.bold.green('[COST]')} ${chalk.green(event.title)}` + (event.details ? chalk.gray(` (${event.details})`) : ''));
+        break;
+
       default:
-        console.log(`${time} ${chalk.gray('[-]' )} ${event.title}`);
+        console.log(`${time} ${chalk.gray('[-]')} ${event.title}`);
         break;
     }
   }

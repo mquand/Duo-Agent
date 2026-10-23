@@ -107,18 +107,24 @@ duo
 Duo Shell (v1.0.0)
 Type your prompt directly, or /help for commands.
 
-duo > Refactor database connection pool retry logic
+duo > Refactor database connection pool in @lib/db/pool.ts
+duo > /cost                   # View cumulative token usage and estimated USD cost
+duo > /commit                 # Auto-generate conventional commit and commit to Git
+duo > /add lib/schema.ts      # Pin specific file into agent context
+duo > /paste                  # Multi-line input mode for stack traces or specs
+duo > /compact                # Summarize completed tasks to save context
 duo > /sessions               # List all saved sessions
 duo > /new auth-flow          # Create and switch to a fresh, clean session
 duo (auth-flow) > /switch main # Switch back to an existing session
 duo > /session                # View current session progress & completed tasks
-duo > /model                  # Interactively switch models for any role
+duo > /model                  # Interactively switch models (Claude 5.5, GPT-6...)
 duo > /theme                  # Switch terminal color theme (Cyber, Dracula, Nord...)
 duo > /lang                   # Switch interface language (English / Vietnamese)
 duo > /help                   # View full command reference
 duo > /plan Add caching layer # Generate plan without editing files
 duo > /diff                   # View current git diff
 duo > /undo                   # Roll back changes to the initial checkpoint
+duo > ! git status            # Run local shell commands directly via !
 duo > /exit                   # Quit shell
 ```
 
