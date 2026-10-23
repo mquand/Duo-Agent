@@ -380,7 +380,13 @@ export class SecurityPrompts {
     };
 
     const chosenTheme = THEMES[themeChoice];
-    console.log(chalk.green(`\n+ Theme set to ${chosenTheme.name}`));
+    console.log(chalk.gray('\n' + '─'.repeat(45)));
+    console.log(chalk.gray('1  function greet() {'));
+    console.log(chalk.red('2 -  console.log("Hello, World!");'));
+    console.log(chalk.green('2 +  console.log("Hello, Duo!");'));
+    console.log(chalk.gray('3  }'));
+    console.log(chalk.gray('─'.repeat(45)));
+    console.log(chalk.hex(chosenTheme.accent)(`\n+ Theme: ${chosenTheme.name}`));
     return updatedConfig;
   }
 }

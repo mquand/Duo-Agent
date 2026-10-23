@@ -4,6 +4,7 @@ import ora from 'ora';
 import chalk from 'chalk';
 import fs from 'fs-extra';
 import path from 'path';
+import os from 'os';
 import readline from 'readline';
 import { exec } from 'child_process';
 import { promisify } from 'util';
@@ -313,11 +314,10 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
     : await sessionManager.getActiveSession();
 
   const isEn = config.language === 'en';
-  console.log(chalk.gray(`\nDuo Shell (v1.0.0)`));
-  console.log(chalk.gray(isEn 
-    ? 'Type your prompt directly, or /help for commands.\n' 
-    : 'Nhập yêu cầu trực tiếp, hoặc gõ /help để xem trợ giúp.\n'
-  ));
+  const cwd = process.cwd().replace(os.homedir(), '~');
+  console.log(chalk.bold.white('Duo Agent') + chalk.gray(` v1.0.0`));
+  console.log(chalk.gray(`${config.roles.architect.model} · ${config.roles.builder.model} · ${config.roles.auditor.model}`));
+  console.log(chalk.gray(cwd) + '\n');
 
   while (true) {
     const isCustomSession = currentSession.title && !['default', 'mặc định', 'phiên mới', 'main'].includes(currentSession.title.toLowerCase());
