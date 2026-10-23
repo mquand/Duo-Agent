@@ -1,0 +1,46 @@
+{
+  "name": "duo-agent",
+  "version": "1.0.0",
+  "description": "Universal Multi-Agent Orchestrator: Architect, Builder, Auditor (Pluggable AI Models)",
+  "main": "dist/index.js",
+  "type": "module",
+  "bin": {
+    "duo": "./bin/duo.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepare": "npm run build",
+    "dev": "ts-node src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "orchestrator",
+    "coding-agent",
+    "cli",
+    "developer-tools"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@google/generative-ai": "^0.21.0",
+    "@inquirer/prompts": "^7.3.2",
+    "chalk": "^5.4.1",
+    "commander": "^13.1.0",
+    "diff": "^7.0.0",
+    "dotenv": "^16.4.7",
+    "fast-glob": "^3.3.3",
+    "fs-extra": "^11.3.0",
+    "openai": "^4.86.1",
+    "ora": "^8.2.0"
+  },
+  "devDependencies": {
+    "@types/diff": "^7.0.0",
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^22.13.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  }
+}
