@@ -91,31 +91,46 @@ Run `duo` without arguments to launch the interactive shell:
 duo
 ```
 ```text
-duo > Refactor database connection pool retry logic
-duo > /model                     # Interactively switch models for any role
-duo > /plan Add caching layer    # Generate plan without editing files
-duo > /diff                      # View current git diff
-duo > /undo                      # Roll back changes to the initial checkpoint
-duo > /config                    # Display active configuration
-duo > /exit                      # Quit session
+duo [Default] > Refactor database connection pool retry logic
+duo [Default] > /sessions               # List all saved sessions
+duo [Default] > /new auth-flow          # Create and switch to a fresh, clean session
+duo [auth-flow] > /switch db-pool       # Switch back to an existing session
+duo [db-pool] > /session                # View current session progress & completed tasks
+duo [db-pool] > /model                  # Interactively switch models for any role
+duo [db-pool] > /plan Add caching layer # Generate plan without editing files
+duo [db-pool] > /diff                   # View current git diff
+duo [db-pool] > /undo                   # Roll back changes to the initial checkpoint
+duo [db-pool] > /exit                   # Quit session
 ```
 
-#### 2. One-Shot Command
+#### 2. Session Management
+```bash
+# Resume your last active session
+duo -r
+
+# Resume a specific session by ID or name
+duo -r auth-flow
+
+# List all saved sessions
+duo --sessions
+```
+
+#### 3. One-Shot Command
 ```bash
 duo "Add unit tests for authentication service"
 ```
 
-#### 3. Plan-Only Mode
+#### 4. Plan-Only Mode
 ```bash
 duo -p "Design event-driven notification queue"
 ```
 
-#### 4. Auto-Accept Mode (Autonomous)
+#### 5. Auto-Accept Mode (Autonomous)
 ```bash
 duo -y "Generate API documentation comments"
 ```
 
-#### 5. Rollback (Undo)
+#### 6. Rollback (Undo)
 ```bash
 duo --undo
 ```
@@ -146,7 +161,8 @@ Duo-Agent là công cụ CLI mã nguồn mở điều phối các mô hình AI t
   - Tự động tạo **Git Checkpoint** trước khi sửa file; khôi phục nhanh bằng `duo --undo` hoặc lệnh `/undo`.
   - Chặn đứng các câu lệnh shell nguy hiểm.
   - Hỗ trợ chế độ **Tương tác**, **Chỉ lên Plan** (`-p`), và **Tự động** (`-y`).
-- 💬 **Chế độ Tương tác REPL & Lệnh Slash**: Gõ yêu cầu trực tiếp không cần ngoặc kép, hỗ trợ các lệnh `/model`, `/plan`, `/diff`, `/undo`, `/config`.
+- 💬 **Chế độ Tương tác REPL & Lệnh Slash**: Gõ yêu cầu trực tiếp không cần ngoặc kép, hỗ trợ các lệnh `/sessions`, `/switch`, `/new`, `/session`, `/model`, `/plan`, `/diff`, `/undo`, `/config`.
+- 🗂️ **Quản lý đa phiên (Multi-Session Management)**: Lưu trữ các phiên làm việc độc lập trong `.duo/sessions/`. Chuyển đổi qua lại giữa các tính năng (`/switch`, `/new`) hoặc khôi phục phiên cũ (`duo -r`) mà không bị nhiễm độc ngữ cảnh.
 - 🌐 **Tự động nhận diện (Zero-Config)**: Tự phát hiện các loại dự án (Elixir, TypeScript/JavaScript, Python, Rust, Go) và nạp file quy ước có sẵn (`CLAUDE.md`, `.cursorrules`, `.duorules`).
 - 🔌 **Linh hoạt cấu hình (Pluggable)**: Hỗ trợ mọi nhà cung cấp AI. Người dùng toàn quyền tùy biến tên model trong file cấu hình.
 

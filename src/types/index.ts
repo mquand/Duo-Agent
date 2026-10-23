@@ -60,3 +60,20 @@ export interface DetectedProject {
   ruleFile?: string;
   ruleContent?: string;
 }
+
+export interface SessionRecord {
+  taskId: string;
+  goal: string;
+  completedAt: string;
+  modifiedFiles: string[];
+  findings?: string;
+}
+
+export interface SessionData {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  checkpointRef?: string;
+  records: SessionRecord[];
+}

@@ -14,13 +14,14 @@ import { GitGuard } from './core/git-guard.js';
 import { CodeGraph } from './core/codegraph.js';
 import { Blackboard } from './core/blackboard.js';
 import { DAGScheduler } from './core/scheduler.js';
+import { SessionManager } from './core/session.js';
 import { ProviderFactory } from './providers/factory.js';
 import { ArchitectAgent } from './agents/architect.js';
 import { BuilderAgent } from './agents/builder.js';
 import { AuditorAgent } from './agents/auditor.js';
 import { Logger } from './ui/logger.js';
 import { SecurityPrompts } from './ui/prompts.js';
-import { AppConfig, ExecutionOptions } from './types/index.js';
+import { AppConfig, ExecutionOptions, SessionData } from './types/index.js';
 
 const execAsync = promisify(exec);
 const program = new Command();
@@ -28,7 +29,9 @@ const program = new Command();
 async function runWorkflow(
   promptText: string,
   options: ExecutionOptions,
-  config: AppConfig
+  config: AppConfig,
+  sessionManager: SessionManager,
+  session: SessionData
 ): Promise<void> {
   // 1. Detect Project Stack & Rules
   const project = await ProjectDetector.detect();
@@ -166,7 +169,16 @@ async function runWorkflow(
     }
   }
 
-  // 10. Cleanup Blackboard & Print Summary
+  // 10. Record Task to Current Session
+  await sessionManager.recordTask(
+    session,
+    `task-${Date.now()}`,
+    plan.goal,
+    plan.dag.flatMap((s) => s.target_files),
+    reviewResult.critique
+  );
+
+  // 11. Cleanup Blackboard & Print Summary
   await blackboard.cleanup();
   Logger.printSuccess('TẤT CẢ CÁC BƯỚC ĐÃ HOÀN TẤT THÀNH CÔNG VỚI ĐỘ CHÍNH XÁC CAO NHẤT!');
 
@@ -178,12 +190,47 @@ async function runWorkflow(
   });
 }
 
+// Print formatted list of sessions
+async function printSessionsList(sessionManager: SessionManager): Promise<void> {
+  const sessions = await sessionManager.listSessions();
+  const activeId = await sessionManager.getActiveId();
+
+  console.log(chalk.bold.yellow('\n📋 DANH SÁCH CÁC PHIÊN LÀM VIỆC (SESSIONS):'));
+  if (sessions.length === 0) {
+    console.log(chalk.gray('  Chưa có phiên làm việc nào được lưu.'));
+    return;
+  }
+
+  for (const s of sessions) {
+    const isActive = s.id === activeId;
+    const marker = isActive ? chalk.bold.green('▶ (active) ') : chalk.gray('  ');
+    const title = isActive ? chalk.bold.white(s.title) : chalk.white(s.title);
+    const date = new Date(s.updatedAt).toLocaleString();
+    console.log(`${marker}${chalk.cyan(`[${s.id}]`)} ${title}`);
+    console.log(
+      chalk.gray(`     Đã hoàn thành ${s.records.length} tasks • Cập nhật: ${date}`)
+    );
+  }
+  console.log();
+}
+
 // Interactive REPL Shell mode
-async function startInteractiveSession(initialConfig: AppConfig): Promise<void> {
+async function startInteractiveSession(initialConfig: AppConfig, initialSessionId?: string): Promise<void> {
   let config = initialConfig;
+  const sessionManager = new SessionManager();
+  let currentSession = initialSessionId
+    ? await sessionManager.switchSession(initialSessionId)
+    : await sessionManager.getActiveSession();
+
   console.log(chalk.bold.yellow('\n💬 CHẾ ĐỘ TƯƠNG TÁC (INTERACTIVE REPL)'));
+  console.log(chalk.gray(`  Phiên hiện tại: `) + chalk.bold.green(`${currentSession.title} [${currentSession.id}]`));
   console.log(chalk.gray('  - Nhập yêu cầu trực tiếp mà không cần dấu ngoặc kép!'));
-  console.log(chalk.gray('  - Lệnh Slash:'));
+  console.log(chalk.gray('  - Lệnh Slash Quản lý Phiên (Sessions):'));
+  console.log(chalk.cyan('    /sessions                ') + chalk.gray(' : Xem danh sách các phiên làm việc'));
+  console.log(chalk.cyan('    /switch <id hoặc tên>    ') + chalk.gray(' : Chuyển sang phiên làm việc khác'));
+  console.log(chalk.cyan('    /new <tên phiên>         ') + chalk.gray(' : Tạo phiên làm việc mới (ngữ cảnh sạch)'));
+  console.log(chalk.cyan('    /session                 ') + chalk.gray(' : Xem thông tin chi tiết phiên hiện tại'));
+  console.log(chalk.gray('  - Lệnh Slash Hệ thống:'));
   console.log(chalk.cyan('    /model hoặc /change_model') + chalk.gray(' : Đổi model/provider cho từng vai trò'));
   console.log(chalk.cyan('    /plan <task>             ') + chalk.gray(' : Chỉ lập kế hoạch, không sửa file'));
   console.log(chalk.cyan('    /diff                    ') + chalk.gray(' : Xem các thay đổi git hiện tại'));
@@ -195,7 +242,7 @@ async function startInteractiveSession(initialConfig: AppConfig): Promise<void> 
   while (true) {
     let userInput: string;
     try {
-      userInput = await input({ message: chalk.bold.cyan('duo >') });
+      userInput = await input({ message: chalk.bold.cyan(`duo [${currentSession.title}] >`) });
     } catch {
       break;
     }
@@ -210,12 +257,55 @@ async function startInteractiveSession(initialConfig: AppConfig): Promise<void> 
 
     if (trimmed === '/help') {
       console.log(chalk.yellow('\nCác lệnh slash có sẵn:'));
-      console.log('  /model, /change_model : Đổi model cho Architect, Builder, hoặc Auditor');
-      console.log('  /plan <nội dung task> : Lập kế hoạch chi tiết mà không sửa code');
-      console.log('  /diff                 : Xem git diff hiện tại');
-      console.log('  /undo                 : Rollback thay đổi');
-      console.log('  /config               : Hiển thị file config');
-      console.log('  /exit, /quit          : Thoát phiên làm việc\n');
+      console.log('  /sessions              : Danh sách tất cả các phiên làm việc');
+      console.log('  /switch <id|tên>       : Chuyển sang phiên làm việc khác');
+      console.log('  /new <tên>             : Tạo một phiên làm việc mới');
+      console.log('  /session               : Xem chi tiết tiến độ của phiên hiện tại');
+      console.log('  /model, /change_model  : Đổi model cho Architect, Builder, hoặc Auditor');
+      console.log('  /plan <nội dung task>  : Lập kế hoạch chi tiết mà không sửa code');
+      console.log('  /diff                  : Xem git diff hiện tại');
+      console.log('  /undo                  : Rollback thay đổi');
+      console.log('  /config                : Hiển thị file config');
+      console.log('  /exit, /quit           : Thoát phiên làm việc\n');
+      continue;
+    }
+
+    if (trimmed === '/sessions') {
+      await printSessionsList(sessionManager);
+      continue;
+    }
+
+    if (trimmed.startsWith('/switch ')) {
+      const target = trimmed.replace('/switch ', '').trim();
+      try {
+        currentSession = await sessionManager.switchSession(target);
+        console.log(chalk.green(`\n✔ Đã chuyển sang phiên: ${chalk.bold(currentSession.title)} [${currentSession.id}]\n`));
+      } catch (e: any) {
+        console.log(chalk.red(`\n✖ ${e.message}\n`));
+      }
+      continue;
+    }
+
+    if (trimmed.startsWith('/new ')) {
+      const title = trimmed.replace('/new ', '').trim();
+      currentSession = await sessionManager.createSession(title);
+      console.log(chalk.green(`\n✔ Đã tạo và kích hoạt phiên mới: ${chalk.bold(currentSession.title)} [${currentSession.id}]\n`));
+      continue;
+    }
+
+    if (trimmed === '/session') {
+      console.log(chalk.bold.yellow(`\n📌 THÔNG TIN PHIÊN: ${currentSession.title}`));
+      console.log(chalk.gray(`- ID:        ${currentSession.id}`));
+      console.log(chalk.gray(`- Tạo lúc:   ${new Date(currentSession.createdAt).toLocaleString()}`));
+      console.log(chalk.gray(`- Cập nhật:  ${new Date(currentSession.updatedAt).toLocaleString()}`));
+      console.log(chalk.gray(`- Số tasks:  ${currentSession.records.length}`));
+      if (currentSession.records.length > 0) {
+        console.log(chalk.yellow('\nCác task đã hoàn thành trong phiên:'));
+        currentSession.records.forEach((r, idx) => {
+          console.log(`  ${idx + 1}. ${r.goal} (${r.modifiedFiles.join(', ')})`);
+        });
+      }
+      console.log();
       continue;
     }
 
@@ -250,12 +340,12 @@ async function startInteractiveSession(initialConfig: AppConfig): Promise<void> 
 
     if (trimmed.startsWith('/plan ')) {
       const task = trimmed.replace('/plan ', '').trim();
-      await runWorkflow(task, { planOnly: true }, config);
+      await runWorkflow(task, { planOnly: true }, config, sessionManager, currentSession);
       continue;
     }
 
     // Normal task execution
-    await runWorkflow(trimmed, { autoAccept: false }, config);
+    await runWorkflow(trimmed, { autoAccept: false }, config, sessionManager, currentSession);
   }
 }
 
@@ -268,8 +358,18 @@ program
   .option('-y, --auto-accept', 'Tự động duyệt kế hoạch và thực thi mà không cần xác nhận', false)
   .option('-d, --dry-run', 'Chạy mô phỏng không ghi đè vào file', false)
   .option('--undo', 'Khôi phục mã nguồn về trạng thái trước khi chạy Duo', false)
+  .option('-r, --resume [sessionId]', 'Tiếp tục phiên làm việc trước đó (mặc định là phiên gần nhất)')
+  .option('--sessions', 'Hiển thị danh sách tất cả các phiên làm việc đã lưu', false)
   .action(async (promptText, options) => {
     Logger.printBanner();
+
+    const sessionManager = new SessionManager();
+
+    // Handle --sessions command
+    if (options.sessions) {
+      await printSessionsList(sessionManager);
+      return;
+    }
 
     // Handle --undo
     if (options.undo) {
@@ -295,14 +395,22 @@ program
       console.log(chalk.green('Đã lưu cấu hình tại ~/.duo/config.json!\n'));
     }
 
+    // Resolve target session
+    let targetSession: SessionData;
+    if (typeof options.resume === 'string') {
+      targetSession = await sessionManager.switchSession(options.resume);
+    } else {
+      targetSession = await sessionManager.getActiveSession();
+    }
+
     // If no prompt provided -> Start Interactive REPL Session!
     if (!promptText) {
-      await startInteractiveSession(config);
+      await startInteractiveSession(config, targetSession.id);
       return;
     }
 
     // One-shot CLI command execution
-    await runWorkflow(promptText, options, config);
+    await runWorkflow(promptText, options, config, sessionManager, targetSession);
   });
 
 program.parse(process.argv);
