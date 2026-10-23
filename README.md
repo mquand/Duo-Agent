@@ -229,6 +229,12 @@ duo -r
 
 # Launch split-terminal telemetry watcher
 duo monitor
+
+# Run self-diagnostic environment & system health check
+duo doctor
+
+# Execute automated unit and end-to-end integration test suite
+npm test
 ```
 
 ---
@@ -319,6 +325,12 @@ duo --undo
 
 # Mở màn hình theo dõi diff & tiến độ song song (chia đôi terminal)
 duo monitor
+
+# Tự chẩn đoán và kiểm tra toàn bộ hệ thống
+duo doctor
+
+# Chạy trọn bộ unit & integration tests tự động
+npm test
 ```
 
 ---
