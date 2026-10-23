@@ -224,6 +224,9 @@ duo -d "Refactor error handling"
 # Rollback last execution
 duo --undo
 
+# Execute parallel tasks in isolated Git worktrees (zero disk collisions)
+duo --worktree "Implement parallel API endpoints and test suites"
+
 # Resume last active session
 duo -r
 
@@ -247,6 +250,7 @@ npm test
 | `/help` | — | Display command reference and shortcut guide |
 | `/model` | — | Interactively switch models (Claude 5.5, GPT-6, DeepSeek, Local Ollama) |
 | `/effort` | `[low\|med\|high\|off]` | Configure reasoning effort & thinking budget for models |
+| `/benchmark` | — | Run empirical benchmark comparing Sandwich vs Monolith |
 | `/cost` | — | Inspect cumulative token consumption and estimated USD costs |
 | `/commit` | `[message]` | Generate conventional git commit from changes and commit to repository |
 | `/add` | `<path>` | Pin specific file or folder directly into agent working memory |

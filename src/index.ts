@@ -30,6 +30,8 @@ import { promptWithSuggestions } from './ui/suggest-prompt.js';
 import { HistoryManager } from './core/history.js';
 import { DiffEngine } from './core/diff-engine.js';
 import { BenchmarkRunner } from './core/benchmark.js';
+import { WorktreeManager } from './core/worktree.js';
+import { IntegrationManager } from './core/integration.js';
 import { AppConfig, ExecutionOptions, SessionData } from './types/index.js';
 
 const execAsync = promisify(exec);
@@ -964,6 +966,7 @@ program
   .option('-y, --auto-accept', 'Autonomous execution without plan confirmation', false)
   .option('-d, --dry-run', 'Simulation mode without writing files', false)
   .option('--undo', 'Rollback working tree to initial checkpoint', false)
+  .option('--worktree', 'Execute parallel tasks in isolated Git worktrees', false)
   .option('-e, --effort <level>', 'Set reasoning effort: low, medium, high, off')
   .option('-r, --resume [sessionId]', 'Resume previous session (default: latest)')
   .option('--sessions', 'List all saved sessions', false)

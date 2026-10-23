@@ -55,6 +55,7 @@ export interface ExecutionOptions {
   autoAccept?: boolean;
   dryRun?: boolean;
   concurrency?: number;
+  worktree?: boolean;
 }
 
 export interface DetectedProject {
