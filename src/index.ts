@@ -59,6 +59,7 @@ const SLASH_COMMANDS_LIST = [
   '/undo',
   '/config',
   '/clear',
+  '/clear-history',
   '/exit',
   '/quit',
 ];
@@ -519,6 +520,7 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
           { name: `${chalk.cyan('/undo')}      ${chalk.gray(isEn ? 'Rollback working tree to checkpoint' : 'Khôi phục code về checkpoint an toàn')}`, value: '/undo' },
           { name: `${chalk.cyan('/config')}    ${chalk.gray(isEn ? 'Display active configuration' : 'Xem cấu hình hiện tại')}`, value: '/config' },
           { name: `${chalk.cyan('/clear')}     ${chalk.gray(isEn ? 'Clear terminal screen' : 'Xóa sạch màn hình')}`, value: '/clear' },
+          { name: `${chalk.cyan('/clear-history')} ${chalk.gray(isEn ? 'Wipe local history, logs & sessions' : 'Xóa sạch lịch sử lệnh, logs & sessions')}`, value: '/clear-history' },
           { name: `${chalk.cyan('/exit')}      ${chalk.gray(isEn ? 'Exit Duo shell' : 'Thoát chương trình')}`, value: '/exit' },
         ],
       });
@@ -587,6 +589,20 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
 
     if (action === '/clear') {
       console.clear();
+      continue;
+    }
+
+    if (action === '/clear-history') {
+      const ok = await confirm({
+        message: isEn ? 'Delete all local prompt history, logs, and sessions in .duo?' : 'Xóa sạch toàn bộ lịch sử prompt, logs và sessions trong .duo?',
+        default: true,
+      });
+      if (ok) {
+        await HistoryManager.clear(process.cwd());
+        currentSession = await sessionManager.getActiveSession();
+        history.length = 0;
+        console.log(chalk.green(isEn ? '\n+ Cleared all local history and sessions.\n' : '\n+ Đã xóa sạch toàn bộ lịch sử và sessions cục bộ.\n'));
+      }
       continue;
     }
 
@@ -945,6 +961,14 @@ program
       console.log(chalk.yellow(`\nNotice: Existing rules file (${detected.ruleFile}) detected. Repository is already initialized.`));
     }
     console.log(chalk.gray(`- Run 'duo' to start interactive session.\n`));
+  });
+
+program
+  .command('clean')
+  .description('Wipe all local prompt history, logs, and sessions in current repo')
+  .action(async () => {
+    await HistoryManager.clear(process.cwd());
+    console.log(chalk.green('\n+ Cleared all local history, logs, and sessions (.duo).\n'));
   });
 
 program

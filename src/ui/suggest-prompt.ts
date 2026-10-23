@@ -38,6 +38,7 @@ export const SLASH_COMMANDS_LIST: SlashCommandItem[] = [
   { name: '/undo', desc: 'Khôi phục code về checkpoint an toàn' },
   { name: '/config', desc: 'Xem cấu hình hiện tại' },
   { name: '/clear', desc: 'Xóa sạch màn hình terminal' },
+  { name: '/clear-history', desc: 'Xóa sạch lịch sử lệnh, logs và sessions (.duo)' },
   { name: '/exit', desc: 'Thoát chương trình' },
 ];
 
@@ -63,6 +64,7 @@ export const SLASH_COMMANDS_DESC_EN: Record<string, string> = {
   '/undo': 'Rollback working tree to checkpoint',
   '/config': 'Display active configuration',
   '/clear': 'Clear terminal screen',
+  '/clear-history': 'Wipe local prompt history, logs & sessions (.duo)',
   '/exit': 'Exit Duo shell',
 };
 

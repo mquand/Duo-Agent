@@ -38,4 +38,13 @@ export class HistoryManager {
       // Ignore write errors
     }
   }
+
+  static async clear(cwd: string = process.cwd()): Promise<void> {
+    try {
+      const duoDir = path.join(cwd, '.duo');
+      if (await fs.pathExists(duoDir)) {
+        await fs.remove(duoDir);
+      }
+    } catch {}
+  }
 }
