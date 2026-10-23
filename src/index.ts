@@ -29,6 +29,7 @@ import { SecurityPrompts } from './ui/prompts.js';
 import { promptWithSuggestions } from './ui/suggest-prompt.js';
 import { HistoryManager } from './core/history.js';
 import { DiffEngine } from './core/diff-engine.js';
+import { BenchmarkRunner } from './core/benchmark.js';
 import { AppConfig, ExecutionOptions, SessionData } from './types/index.js';
 
 const execAsync = promisify(exec);
@@ -37,6 +38,8 @@ const program = new Command();
 const SLASH_COMMANDS_LIST = [
   '/help',
   '/model',
+  '/effort',
+  '/benchmark',
   '/theme',
   '/lang',
   '/cost',
@@ -772,6 +775,11 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
       continue;
     }
 
+    if (action === '/benchmark') {
+      await BenchmarkRunner.run(config);
+      continue;
+    }
+
     if (action === '/config') {
       console.log(chalk.white.bold('\nConfig:'));
       console.log(chalk.gray(JSON.stringify(config, null, 2)) + '\n');
@@ -915,6 +923,14 @@ program
     }
 
     console.log(chalk.bold.green('\nAll diagnostic checks completed.\n'));
+  });
+
+program
+  .command('benchmark')
+  .description('Run empirical benchmark comparing Sandwich vs Monolith agent architectures')
+  .action(async () => {
+    const config = await ConfigManager.loadConfig();
+    await BenchmarkRunner.run(config);
   });
 
 program

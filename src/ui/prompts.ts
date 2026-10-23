@@ -14,6 +14,11 @@ const DANGEROUS_PATTERNS = [
   />\s*\/dev\/sd/i,
 ];
 
+function maskKey(key: string): string {
+  if (key.length <= 8) return '****';
+  return `${key.slice(0, 6)}...${key.slice(-4)}`;
+}
+
 interface ModelOption {
   name: string;
   provider: ProviderType;
@@ -269,10 +274,12 @@ export class SecurityPrompts {
         message: hasEnv
           ? `Anthropic API Key ${chalk.dim('[Found in $ANTHROPIC_API_KEY - press Enter to use]')}:`
           : `Anthropic API Key ${chalk.dim('[Paste sk-ant-... or Enter to skip if using local]')}:`,
+        mask: '*',
       });
       if (key.trim()) {
         architectConfig.apiKey = key.trim();
         if (auditorConfig.provider === 'anthropic') auditorConfig.apiKey = key.trim();
+        console.log(chalk.green(`+ Anthropic Key received (${maskKey(key.trim())})`));
       }
     }
 
@@ -282,8 +289,12 @@ export class SecurityPrompts {
         message: hasEnv
           ? `Google Gemini API Key ${chalk.dim('[Found in $GEMINI_API_KEY - press Enter to use]')}:`
           : `Google Gemini API Key ${chalk.dim('[Paste AIzaSy... or Enter to skip if using local]')}:`,
+        mask: '*',
       });
-      if (key.trim()) builderConfig.apiKey = key.trim();
+      if (key.trim()) {
+        builderConfig.apiKey = key.trim();
+        console.log(chalk.green(`+ Google Gemini Key received (${maskKey(key.trim())})`));
+      }
     }
 
     if (
@@ -306,11 +317,13 @@ export class SecurityPrompts {
 
       const key = await password({
         message: `OpenAI-compatible API Key ${hint}:`,
+        mask: '*',
       });
       if (key.trim()) {
         if (architectConfig.provider === 'openai-compatible') architectConfig.apiKey = key.trim();
         if (builderConfig.provider === 'openai-compatible') builderConfig.apiKey = key.trim();
         if (auditorConfig.provider === 'openai-compatible') auditorConfig.apiKey = key.trim();
+        console.log(chalk.green(`+ OpenAI-compatible Key received (${maskKey(key.trim())})`));
       }
     }
 
@@ -348,9 +361,11 @@ export class SecurityPrompts {
 
     const apiKey = await password({
       message: `API Key for ${targetRole} ${keyHint}:`,
+      mask: '*',
     });
     if (apiKey.trim()) {
       newRoleConfig.apiKey = apiKey.trim();
+      console.log(chalk.green(`+ ${targetRole} API Key updated (${maskKey(apiKey.trim())})`));
     } else {
       newRoleConfig.apiKey = config.roles[targetRole]?.apiKey;
     }
