@@ -23,6 +23,11 @@
   ],
   "author": "",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mquand/Duo-Agent.git"
+  },
+  "homepage": "https://github.com/mquand/Duo-Agent#readme",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
     "@google/generative-ai": "^0.21.0",
