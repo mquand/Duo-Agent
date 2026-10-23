@@ -51,14 +51,13 @@ export class ActivityLogger {
 export class ActivityMonitor {
   static async start(): Promise<void> {
     console.clear();
-    console.log(chalk.bold.magenta(`
-╔════════════════════════════════════════════════════════════════════╗
-║                   📡  D U O - M O N I T O R                        ║
-║            Live Agent Activity & Code Diff Stream                  ║
-║      (Để cửa sổ này ở một nửa màn hình để theo dõi theo thời gian thực) ║
-╚════════════════════════════════════════════════════════════════════╝
+    console.log(chalk.bold.cyan(`
+┌────────────────────────────────────────────────────────────────────┐
+│                       DUO ACTIVITY MONITOR                         │
+│               Live Agent Activity & Code Diff Stream               │
+└────────────────────────────────────────────────────────────────────┘
 `));
-    console.log(chalk.gray('Đang lắng nghe hoạt động từ Duo-Agent... (Bấm Ctrl+C để thoát)\n'));
+    console.log(chalk.gray('Listening for Duo-Agent activity... (Ctrl+C to exit)\n'));
 
     const logFile = ActivityLogger.getLogPath();
     await fs.ensureDir(path.dirname(logFile));
@@ -112,15 +111,15 @@ export class ActivityMonitor {
 
     switch (event.type) {
       case 'architect':
-        console.log(`${time} ${chalk.bold.blue('🧠 [ARCHITECT]')} ${chalk.bold.white(event.title)}`);
+        console.log(`${time} ${chalk.bold.blue('[ARCHITECT]')} ${chalk.bold.white(event.title)}`);
         break;
 
       case 'builder':
-        console.log(`${time} ${chalk.bold.cyan('⚡ [BUILDER]')} ${chalk.white(event.title)}`);
+        console.log(`${time} ${chalk.bold.cyan('[BUILDER]')} ${chalk.white(event.title)}`);
         break;
 
       case 'diff':
-        console.log(`${time} ${chalk.bold.green('📝 [CODE DIFF]')} ${chalk.green(event.title)}`);
+        console.log(`${time} ${chalk.bold.green('[DIFF]')} ${chalk.green(event.title)}`);
         if (event.details) {
           console.log(chalk.gray('─'.repeat(50)));
           console.log(event.details);
@@ -129,25 +128,25 @@ export class ActivityMonitor {
         break;
 
       case 'test':
-        console.log(`${time} ${chalk.bold.yellow('🧪 [TEST RUNNER]')} ${chalk.yellow(event.title)}`);
+        console.log(`${time} ${chalk.bold.yellow('[TEST]')} ${chalk.yellow(event.title)}`);
         if (event.details) {
           console.log(chalk.gray(`   > ${event.details}`));
         }
         break;
 
       case 'auditor':
-        console.log(`${time} ${chalk.bold.magenta('🔍 [CHIEF AUDITOR]')} ${chalk.magenta(event.title)}`);
+        console.log(`${time} ${chalk.bold.magenta('[AUDITOR]')} ${chalk.magenta(event.title)}`);
         if (event.details) {
-          console.log(chalk.gray(`   Nhận xét: ${event.details}`));
+          console.log(chalk.gray(`   > ${event.details}`));
         }
         break;
 
       case 'session':
-        console.log(`${time} ${chalk.bold.yellow('🗂️  [SESSION]')} ${chalk.white(event.title)}`);
+        console.log(`${time} ${chalk.bold.white('[SESSION]')} ${chalk.white(event.title)}`);
         break;
 
       default:
-        console.log(`${time} ${chalk.gray('ℹ')} ${event.title}`);
+        console.log(`${time} ${chalk.gray('[-]' )} ${event.title}`);
         break;
     }
   }

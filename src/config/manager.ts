@@ -48,6 +48,8 @@ export class ConfigManager {
             ...config.roles,
             ...fileContent.roles,
           },
+          theme: fileContent.theme ?? config.theme,
+          language: fileContent.language ?? config.language,
           telemetry: fileContent.telemetry ?? config.telemetry,
         };
       } catch (e) {

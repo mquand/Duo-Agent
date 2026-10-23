@@ -4,9 +4,9 @@ import ora from 'ora';
 import chalk from 'chalk';
 import fs from 'fs-extra';
 import path from 'path';
+import readline from 'readline';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { input } from '@inquirer/prompts';
 
 import { ConfigManager } from './config/manager.js';
 import { ProjectDetector } from './detector/project.js';
@@ -29,6 +29,26 @@ import { AppConfig, ExecutionOptions, SessionData } from './types/index.js';
 const execAsync = promisify(exec);
 const program = new Command();
 
+function promptUser(promptText: string): Promise<string> {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  return new Promise((resolve) => {
+    rl.question(promptText, (answer) => {
+      rl.close();
+      resolve(answer);
+    });
+
+    rl.on('SIGINT', () => {
+      rl.close();
+      console.log();
+      process.exit(0);
+    });
+  });
+}
+
 async function runWorkflow(
   promptText: string,
   options: ExecutionOptions,
@@ -36,36 +56,38 @@ async function runWorkflow(
   sessionManager: SessionManager,
   session: SessionData
 ): Promise<void> {
+  const isEn = config.language === 'en';
+
   // 1. Detect Project Stack & Rules
   const project = await ProjectDetector.detect();
   Logger.printInfo(
-    `Phát hiện dự án: ${chalk.bold(project.type.toUpperCase())} (${project.language})` +
-      (project.ruleFile ? ` | Quy ước: ${chalk.cyan(project.ruleFile)}` : '')
+    `${isEn ? 'Detected project:' : 'Phát hiện dự án:'} ${chalk.bold(project.type.toUpperCase())} (${project.language})` +
+      (project.ruleFile ? ` | ${isEn ? 'Rules:' : 'Quy ước:'} ${chalk.cyan(project.ruleFile)}` : '')
   );
 
   // 2. Create Safety Checkpoint
   const checkpointRef = await GitGuard.createCheckpoint();
   if (checkpointRef) {
-    Logger.printInfo(`Đã tạo Git Checkpoint an toàn [${checkpointRef.slice(0, 7)}]`);
+    Logger.printInfo(`${isEn ? 'Safety checkpoint created' : 'Checkpoint an toàn'}: [${checkpointRef.slice(0, 7)}]`);
   }
 
   // 3. Build CodeGraph Skeleton
-  const spinner = ora('Đang quét cấu trúc mã nguồn (CodeGraph Skeleton)...').start();
+  const spinner = ora(isEn ? 'Extracting CodeGraph skeleton...' : 'Đang phân tích cấu trúc mã nguồn (CodeGraph)...').start();
   const codeSkeleton = await CodeGraph.generateSkeleton();
-  spinner.succeed(chalk.green('Đã trích xuất xong CodeGraph Skeleton!'));
+  spinner.succeed(chalk.green(isEn ? 'CodeGraph skeleton ready' : 'Đã phân tích xong CodeGraph'));
 
   // 4. Architect Phase (Reasoning Model)
-  spinner.start(`🧠 Architect (${config.roles.architect.model}) đang lập kế hoạch...`);
+  spinner.start(isEn ? `Architect (${config.roles.architect.model}): Planning...` : `Architect (${config.roles.architect.model}): Đang lập kế hoạch...`);
   const architectProvider = ProviderFactory.create(config.roles.architect);
   const architect = new ArchitectAgent(architectProvider);
 
   let plan;
   try {
     plan = await architect.plan(promptText, codeSkeleton, project.ruleContent);
-    spinner.succeed(chalk.green('Architect đã lập kế hoạch xong!'));
+    spinner.succeed(chalk.green(isEn ? 'Architect: Plan ready' : 'Architect: Kế hoạch hoàn tất'));
     await ActivityLogger.log('architect', `Kế hoạch: ${plan.goal}`, plan.summary);
   } catch (err: any) {
-    spinner.fail(chalk.red(`Lỗi lập kế hoạch: ${err.message}`));
+    spinner.fail(chalk.red(`${isEn ? 'Planning error:' : 'Lỗi lập kế hoạch:'} ${err.message}`));
     await ActivityLogger.log('architect', `Lỗi lập kế hoạch: ${err.message}`);
     return;
   }
@@ -75,17 +97,19 @@ async function runWorkflow(
     await fs.ensureDir('.duo');
     await fs.writeFile(
       path.join('.duo', 'plan.md'),
-      `# Kế hoạch: ${plan.goal}\n\n${plan.summary}\n\n` +
+      `# Plan: ${plan.goal}\n\n${plan.summary}\n\n` +
         plan.dag
           .map(
             (s) =>
-              `### [${s.id}] ${s.title}\n- Files: ${s.target_files.join(', ')}\n- Hướng dẫn: ${s.instructions}\n- Test: ${s.verification_cmd || 'N/A'}`
+              `### [${s.id}] ${s.title}\n- Files: ${s.target_files.join(', ')}\n- Instructions: ${s.instructions}\n- Test: ${s.verification_cmd || 'N/A'}`
           )
           .join('\n\n')
     );
     console.log(
-      chalk.bold.green(
-        `\n✔ Đã lưu kế hoạch vào .duo/plan.md (Chế độ Plan-Only). Mã nguồn không bị thay đổi!`
+      chalk.green(
+        isEn
+          ? `\n+ Plan saved to .duo/plan.md (Plan-Only mode). Source code untouched.`
+          : `\n+ Đã lưu kế hoạch vào .duo/plan.md (Chế độ Plan-Only). Mã nguồn không đổi.`
       )
     );
     return;
@@ -95,15 +119,15 @@ async function runWorkflow(
   if (!options.autoAccept) {
     const decision = await SecurityPrompts.promptPlanApproval(plan);
     if (decision === 'abort') {
-      console.log(chalk.red('\nĐã hủy bỏ thực thi.'));
+      console.log(chalk.gray(isEn ? '\nExecution aborted.' : '\nĐã hủy bỏ thực thi.'));
       return;
     }
   }
 
   // 7. Builder Phase (Concurrent Execution via DAG Scheduler)
   console.log(
-    chalk.bold.cyan(
-      `\n⚡ BẮT ĐẦU THỰC THI ĐỒ THỊ NHIỆM VỤ VỚI BUILDER (${config.roles.builder.model})...\n`
+    chalk.cyan(
+      `\nBuilder (${config.roles.builder.model}): ${isEn ? 'Executing tasks...' : 'Thực thi nhiệm vụ...'}\n`
     )
   );
   const builderProvider = ProviderFactory.create(config.roles.builder);
@@ -116,13 +140,13 @@ async function runWorkflow(
   const stepSpinners: Record<string, any> = {};
   const executionResult = await scheduler.executePlan(plan, {
     onStepStart: (step) => {
-      stepSpinners[step.id] = ora(`[${step.id}] Đang thực thi: ${step.title}`).start();
+      stepSpinners[step.id] = ora(`[${step.id}] ${step.title}`).start();
       ActivityLogger.log('builder', `[${step.id}] Bắt đầu: ${step.title}`, step.instructions);
     },
     onStepComplete: (step, res) => {
       if (stepSpinners[step.id]) {
         stepSpinners[step.id].succeed(
-          chalk.green(`[${step.id}] Hoàn thành: ${step.title} (${res.modifiedFiles.join(', ')})`)
+          chalk.green(`[${step.id}] ${step.title} (${res.modifiedFiles.join(', ')})`)
         );
       }
       ActivityLogger.log('builder', `[${step.id}] Hoàn thành: ${step.title}`, res.findings);
@@ -136,14 +160,16 @@ async function runWorkflow(
   });
 
   if (!executionResult.success) {
-    Logger.printError('Một số bước trong kế hoạch bị lỗi. Quá trình tạm dừng.');
-    console.log(chalk.yellow(`Gõ 'duo --undo' hoặc dùng lệnh slash '/undo' để khôi phục.`));
+    Logger.printError(isEn ? 'Execution paused due to errors.' : 'Một số bước bị lỗi. Tạm dừng thực thi.');
+    console.log(chalk.gray(isEn ? "Run 'duo --undo' or use '/undo' to rollback." : "Gõ 'duo --undo' hoặc dùng '/undo' để khôi phục."));
     return;
   }
 
   // 8. Chief Auditor Phase (Final Review & Last-Mile Polish)
   const auditorSpinner = ora(
-    `🔍 Chief Auditor (${config.roles.auditor.model}) đang tổng duyệt toàn bộ Git Diff cuối cùng...`
+    isEn
+      ? `Auditor (${config.roles.auditor.model}): Reviewing git diff...`
+      : `Auditor (${config.roles.auditor.model}): Đang duyệt Git diff...`
   ).start();
   const auditorProvider = ProviderFactory.create(config.roles.auditor);
   const auditor = new AuditorAgent(auditorProvider);
@@ -152,29 +178,33 @@ async function runWorkflow(
   const reviewResult = await auditor.review(plan.goal, accumulatedDiff, project.ruleContent);
 
   if (reviewResult.approved) {
-    auditorSpinner.succeed(chalk.green('Chief Auditor: PHÊ DUYỆT CHẤT LƯỢNG (PASS)'));
-    console.log(chalk.gray(`Nhận xét: ${reviewResult.critique}`));
-    await ActivityLogger.log('auditor', 'Chief Auditor: PHÊ DUYỆT (PASS)', reviewResult.critique);
+    auditorSpinner.succeed(chalk.green(isEn ? 'Auditor: Quality approved (Pass)' : 'Auditor: Phê duyệt (Pass)'));
+    if (reviewResult.critique) {
+      console.log(chalk.gray(`Critique: ${reviewResult.critique}`));
+    }
+    await ActivityLogger.log('auditor', 'Auditor: Phê duyệt (Pass)', reviewResult.critique);
     if (reviewResult.polishDiffs && reviewResult.polishDiffs.length > 0) {
       console.log(
-        chalk.magenta(
-          `✨ Chief Auditor đã tự động vá ${reviewResult.polishDiffs.length} chi tiết biên (Last-Mile Polish).`
+        chalk.green(
+          isEn
+            ? `+ Auditor polished ${reviewResult.polishDiffs.length} edge details.`
+            : `+ Auditor đã hoàn thiện ${reviewResult.polishDiffs.length} chi tiết biên.`
         )
       );
-      await ActivityLogger.log('auditor', `Tự động vá ${reviewResult.polishDiffs.length} chi tiết biên (Last-Mile Polish)`);
+      await ActivityLogger.log('auditor', `Tự động vá ${reviewResult.polishDiffs.length} chi tiết biên`);
     }
   } else {
-    auditorSpinner.warn(chalk.yellow('Chief Auditor: Có lưu ý về chất lượng code:'));
-    console.log(chalk.yellow(`Nhận xét: ${reviewResult.critique}`));
-    await ActivityLogger.log('auditor', 'Chief Auditor: CÓ LƯU Ý', reviewResult.critique);
+    auditorSpinner.warn(chalk.yellow(isEn ? 'Auditor advisory:' : 'Auditor lưu ý:'));
+    console.log(chalk.gray(`Critique: ${reviewResult.critique}`));
+    await ActivityLogger.log('auditor', 'Auditor: Lưu ý', reviewResult.critique);
   }
 
   // 9. Auto Format Code
   if (project.formatCommand) {
     try {
-      const fmtSpinner = ora(`Đang định dạng mã nguồn (${project.formatCommand})...`).start();
+      const fmtSpinner = ora(isEn ? 'Formatting code...' : 'Đang định dạng mã nguồn...').start();
       await execAsync(project.formatCommand);
-      fmtSpinner.succeed(chalk.green('Đã định dạng mã nguồn chuẩn quy chuẩn dự án!'));
+      fmtSpinner.succeed(chalk.green(isEn ? 'Code formatted' : 'Đã định dạng mã nguồn'));
     } catch {
       // Ignore format error
     }
@@ -191,7 +221,7 @@ async function runWorkflow(
 
   // 11. Cleanup Blackboard & Print Summary
   await blackboard.cleanup();
-  Logger.printSuccess('TẤT CẢ CÁC BƯỚC ĐÃ HOÀN TẤT THÀNH CÔNG VỚI ĐỘ CHÍNH XÁC CAO NHẤT!');
+  Logger.printSuccess(isEn ? 'Execution completed successfully' : 'Hoàn tất thành công');
 
   Logger.printCostReport({
     architectCalls: 1,
@@ -206,20 +236,20 @@ async function printSessionsList(sessionManager: SessionManager): Promise<void> 
   const sessions = await sessionManager.listSessions();
   const activeId = await sessionManager.getActiveId();
 
-  console.log(chalk.bold.yellow('\n📋 DANH SÁCH CÁC PHIÊN LÀM VIỆC (SESSIONS):'));
+  console.log(chalk.white.bold('\nSessions:'));
   if (sessions.length === 0) {
-    console.log(chalk.gray('  Chưa có phiên làm việc nào được lưu.'));
+    console.log(chalk.gray('  No saved sessions found.'));
     return;
   }
 
   for (const s of sessions) {
     const isActive = s.id === activeId;
-    const marker = isActive ? chalk.bold.green('▶ (active) ') : chalk.gray('  ');
+    const marker = isActive ? chalk.green('* ') : chalk.gray('  ');
     const title = isActive ? chalk.bold.white(s.title) : chalk.white(s.title);
     const date = new Date(s.updatedAt).toLocaleString();
     console.log(`${marker}${chalk.cyan(`[${s.id}]`)} ${title}`);
     console.log(
-      chalk.gray(`     Đã hoàn thành ${s.records.length} tasks • Cập nhật: ${date}`)
+      chalk.gray(`     ${s.records.length} tasks • Updated: ${date}`)
     );
   }
   console.log();
@@ -233,27 +263,20 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
     ? await sessionManager.switchSession(initialSessionId)
     : await sessionManager.getActiveSession();
 
-  console.log(chalk.bold.yellow('\n💬 CHẾ ĐỘ TƯƠNG TÁC (INTERACTIVE REPL)'));
-  console.log(chalk.gray(`  Phiên hiện tại: `) + chalk.bold.green(`${currentSession.title} [${currentSession.id}]`));
-  console.log(chalk.gray('  - Nhập yêu cầu trực tiếp mà không cần dấu ngoặc kép!'));
-  console.log(chalk.gray('  - Lệnh Slash Quản lý Phiên (Sessions):'));
-  console.log(chalk.cyan('    /sessions                ') + chalk.gray(' : Xem danh sách các phiên làm việc'));
-  console.log(chalk.cyan('    /switch <id hoặc tên>    ') + chalk.gray(' : Chuyển sang phiên làm việc khác'));
-  console.log(chalk.cyan('    /new <tên phiên>         ') + chalk.gray(' : Tạo phiên làm việc mới (ngữ cảnh sạch)'));
-  console.log(chalk.cyan('    /session                 ') + chalk.gray(' : Xem thông tin chi tiết phiên hiện tại'));
-  console.log(chalk.gray('  - Lệnh Slash Hệ thống:'));
-  console.log(chalk.cyan('    /model hoặc /change_model') + chalk.gray(' : Đổi model/provider cho từng vai trò'));
-  console.log(chalk.cyan('    /plan <task>             ') + chalk.gray(' : Chỉ lập kế hoạch, không sửa file'));
-  console.log(chalk.cyan('    /diff                    ') + chalk.gray(' : Xem các thay đổi git hiện tại'));
-  console.log(chalk.cyan('    /undo                    ') + chalk.gray(' : Khôi phục mã nguồn về checkpoint ban đầu'));
-  console.log(chalk.cyan('    /config                  ') + chalk.gray(' : Xem cấu hình hiện tại'));
-  console.log(chalk.cyan('    /help                    ') + chalk.gray(' : Hiển thị trợ giúp'));
-  console.log(chalk.cyan('    /exit hoặc /quit         ') + chalk.gray(' : Thoát chương trình\n'));
+  const isEn = config.language === 'en';
+  console.log(chalk.gray(`\nDuo Shell (v1.0.0)`));
+  console.log(chalk.gray(isEn 
+    ? 'Type your prompt directly, or /help for commands.\n' 
+    : 'Nhập yêu cầu trực tiếp, hoặc gõ /help để xem trợ giúp.\n'
+  ));
 
   while (true) {
+    const isCustomSession = currentSession.title && !['default', 'mặc định', 'phiên mới', 'main'].includes(currentSession.title.toLowerCase());
+    const promptLabel = isCustomSession ? `duo (${currentSession.title}) > ` : 'duo > ';
+
     let userInput: string;
     try {
-      userInput = await input({ message: chalk.bold.cyan(`duo [${currentSession.title}] >`) });
+      userInput = await promptUser(chalk.bold.cyan(promptLabel));
     } catch {
       break;
     }
@@ -262,8 +285,13 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
     if (!trimmed) continue;
 
     if (trimmed === '/exit' || trimmed === '/quit') {
-      console.log(chalk.gray('Tạm biệt!'));
+      console.log(chalk.gray(isEn ? 'Goodbye!' : 'Tạm biệt!'));
       break;
+    }
+
+    if (trimmed === '/clear') {
+      console.clear();
+      continue;
     }
 
     if (trimmed === '/help') {
@@ -294,9 +322,9 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
       const target = trimmed.replace('/switch ', '').trim();
       try {
         currentSession = await sessionManager.switchSession(target);
-        console.log(chalk.green(`\n✔ Đã chuyển sang phiên: ${chalk.bold(currentSession.title)} [${currentSession.id}]\n`));
+        console.log(chalk.green(`\n+ Switched to session: ${currentSession.title} [${currentSession.id}]\n`));
       } catch (e: any) {
-        console.log(chalk.red(`\n✖ ${e.message}\n`));
+        console.log(chalk.red(`\n! ${e.message}\n`));
       }
       continue;
     }
@@ -304,20 +332,20 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
     if (trimmed.startsWith('/new ')) {
       const title = trimmed.replace('/new ', '').trim();
       currentSession = await sessionManager.createSession(title);
-      console.log(chalk.green(`\n✔ Đã tạo và kích hoạt phiên mới: ${chalk.bold(currentSession.title)} [${currentSession.id}]\n`));
+      console.log(chalk.green(`\n+ Created session: ${currentSession.title} [${currentSession.id}]\n`));
       continue;
     }
 
     if (trimmed === '/session') {
-      console.log(chalk.bold.yellow(`\n📌 THÔNG TIN PHIÊN: ${currentSession.title}`));
+      console.log(chalk.white.bold(`\nSession: ${currentSession.title}`));
       console.log(chalk.gray(`- ID:        ${currentSession.id}`));
-      console.log(chalk.gray(`- Tạo lúc:   ${new Date(currentSession.createdAt).toLocaleString()}`));
-      console.log(chalk.gray(`- Cập nhật:  ${new Date(currentSession.updatedAt).toLocaleString()}`));
-      console.log(chalk.gray(`- Số tasks:  ${currentSession.records.length}`));
+      console.log(chalk.gray(`- Created:   ${new Date(currentSession.createdAt).toLocaleString()}`));
+      console.log(chalk.gray(`- Updated:   ${new Date(currentSession.updatedAt).toLocaleString()}`));
+      console.log(chalk.gray(`- Tasks:     ${currentSession.records.length}`));
       if (currentSession.records.length > 0) {
-        console.log(chalk.yellow('\nCác task đã hoàn thành trong phiên:'));
+        console.log(chalk.gray('\nCompleted tasks:'));
         currentSession.records.forEach((r, idx) => {
-          console.log(`  ${idx + 1}. ${r.goal} (${r.modifiedFiles.join(', ')})`);
+          console.log(chalk.gray(`  ${idx + 1}. ${r.goal} (${r.modifiedFiles.join(', ')})`));
         });
       }
       console.log();
@@ -331,25 +359,25 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
     }
 
     if (trimmed === '/config') {
-      console.log(chalk.bold.yellow('\nCấu hình hiện tại:'));
-      console.log(JSON.stringify(config, null, 2) + '\n');
+      console.log(chalk.white.bold('\nConfig:'));
+      console.log(chalk.gray(JSON.stringify(config, null, 2)) + '\n');
       continue;
     }
 
     if (trimmed === '/undo') {
-      const spinner = ora('Đang khôi phục mã nguồn...').start();
+      const spinner = ora(isEn ? 'Rolling back changes...' : 'Đang khôi phục mã nguồn...').start();
       const ok = await GitGuard.rollback();
       if (ok) {
-        spinner.succeed(chalk.green('Đã khôi phục (Rollback) thành công!\n'));
+        spinner.succeed(chalk.green(isEn ? 'Rollback completed\n' : 'Đã khôi phục thành công!\n'));
       } else {
-        spinner.fail(chalk.red('Không thể rollback.\n'));
+        spinner.fail(chalk.red(isEn ? 'Rollback failed\n' : 'Không thể rollback.\n'));
       }
       continue;
     }
 
     if (trimmed === '/diff') {
       const diffText = await GitGuard.getDiff();
-      console.log(diffText ? chalk.cyan(diffText) : chalk.gray('Không có thay đổi nào trong git.\n'));
+      console.log(diffText ? chalk.cyan(diffText) : chalk.gray(isEn ? 'No uncommitted changes.\n' : 'Không có thay đổi nào trong git.\n'));
       continue;
     }
 
@@ -366,14 +394,14 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
 
 program
   .command('monitor')
-  .description('Mở màn hình Live Monitor theo dõi trực tiếp hoạt động của Agent và code diff theo thời gian thực')
+  .description('Live Monitor activity & diff watcher')
   .action(async () => {
     await ActivityMonitor.start();
   });
 
 program
   .command('lang [language]')
-  .description('Thiết lập hoặc chuyển đổi ngôn ngữ giao diện (en / vi)')
+  .description('Set or switch interface language (en / vi)')
   .action(async (langArg) => {
     let config = await ConfigManager.loadConfig();
     if (langArg === 'en' || langArg === 'vi') {
@@ -382,8 +410,8 @@ program
       console.log(
         chalk.green(
           langArg === 'en'
-            ? 'Interface language set to English!'
-            : 'Đã thiết lập ngôn ngữ giao diện sang Tiếng Việt!'
+            ? '+ Interface language set to English'
+            : '+ Đã thiết lập ngôn ngữ giao diện sang Tiếng Việt'
         )
       );
     } else {
@@ -394,7 +422,7 @@ program
 
 program
   .command('help')
-  .description('Hiển thị bảng tra cứu lệnh chi tiết và hướng dẫn sử dụng')
+  .description('Display command reference and help guide')
   .action(async () => {
     const config = await ConfigManager.loadConfig();
     i18n.setLanguage(config.language || 'vi');
@@ -403,14 +431,14 @@ program
 
 program
   .command('theme [themeName]')
-  .description('Chọn hoặc thay đổi giao diện màu sắc Terminal (cyber, dracula, nord, monokai, matrix, sunset)')
+  .description('Terminal theme: cyber, dracula, nord, monokai, matrix, sunset')
   .action(async (themeArg) => {
     let config = await ConfigManager.loadConfig();
     if (themeArg && THEMES[themeArg]) {
       config.theme = themeArg;
       await ConfigManager.saveConfig(config);
       Logger.printBanner(config.theme);
-      console.log(chalk.green(`Đã áp dụng theme: ${THEMES[themeArg].name}`));
+      console.log(chalk.green(`+ Theme set to: ${THEMES[themeArg].name}`));
     } else {
       config = await SecurityPrompts.promptSelectTheme(config);
       await ConfigManager.saveConfig(config);
@@ -420,15 +448,15 @@ program
 
 program
   .name('duo')
-  .description('Universal Multi-Agent Orchestrator: Architect, Builder, Auditor (Pluggable AI Models)')
+  .description('Universal Multi-Agent Orchestrator: Architect, Builder, Auditor')
   .version('1.0.0')
-  .argument('[prompt]', 'Mô tả công việc cần thực hiện')
-  .option('-p, --plan-only', 'Chỉ lập kế hoạch, không sửa đổi mã nguồn', false)
-  .option('-y, --auto-accept', 'Tự động duyệt kế hoạch và thực thi mà không cần xác nhận', false)
-  .option('-d, --dry-run', 'Chạy mô phỏng không ghi đè vào file', false)
-  .option('--undo', 'Khôi phục mã nguồn về trạng thái trước khi chạy Duo', false)
-  .option('-r, --resume [sessionId]', 'Tiếp tục phiên làm việc trước đó (mặc định là phiên gần nhất)')
-  .option('--sessions', 'Hiển thị danh sách tất cả các phiên làm việc đã lưu', false)
+  .argument('[prompt]', 'Task description to execute')
+  .option('-p, --plan-only', 'Generate plan only without modifying code', false)
+  .option('-y, --auto-accept', 'Autonomous execution without plan confirmation', false)
+  .option('-d, --dry-run', 'Simulation mode without writing files', false)
+  .option('--undo', 'Rollback working tree to initial checkpoint', false)
+  .option('-r, --resume [sessionId]', 'Resume previous session (default: latest)')
+  .option('--sessions', 'List all saved sessions', false)
   .action(async (promptText, options) => {
     // Load Configuration
     let config = await ConfigManager.loadConfig();
@@ -446,12 +474,13 @@ program
 
     // Handle --undo
     if (options.undo) {
-      const spinner = ora('Đang khôi phục mã nguồn về checkpoint gần nhất...').start();
+      const isEn = config.language === 'en';
+      const spinner = ora(isEn ? 'Rolling back changes...' : 'Đang khôi phục mã nguồn về checkpoint...').start();
       const ok = await GitGuard.rollback();
       if (ok) {
-        spinner.succeed(chalk.green('Đã khôi phục (Rollback) thành công!'));
+        spinner.succeed(chalk.green(isEn ? 'Rollback completed' : 'Đã khôi phục thành công!'));
       } else {
-        spinner.fail(chalk.red('Không thể rollback. Đảm bảo thư mục hiện tại là git repo.'));
+        spinner.fail(chalk.red(isEn ? 'Rollback failed' : 'Không thể rollback. Đảm bảo thư mục hiện tại là git repo.'));
       }
       return;
     }
@@ -459,11 +488,11 @@ program
     const missingKeys = ConfigManager.getMissingKeys(config);
 
     if (missingKeys.length > 0) {
-      console.log(chalk.yellow(`Lưu ý: ${missingKeys.join(', ')}`));
+      console.log(chalk.yellow(`Notice: ${missingKeys.join(', ')}`));
       const newConfig = await SecurityPrompts.promptOnboarding();
       config = { ...config, roles: { ...config.roles, ...newConfig.roles } };
       await ConfigManager.saveConfig(config);
-      console.log(chalk.green('Đã lưu cấu hình tại ~/.duo/config.json!\n'));
+      console.log(chalk.green('+ Saved configuration at ~/.duo/config.json\n'));
     }
 
     // Resolve target session

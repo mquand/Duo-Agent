@@ -2,6 +2,7 @@ node_modules/
 dist/
 .env
 .duo/
+.duorc*
 *.log
 npm-debug.log*
 .DS_Store

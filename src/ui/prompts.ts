@@ -22,142 +22,36 @@ interface ModelOption {
 }
 
 const POPULAR_ARCHITECT_MODELS: ModelOption[] = [
-  {
-    name: 'Claude 3.7 Sonnet (Anthropic - Suy luận kiến trúc & lập kế hoạch xuất sắc)',
-    provider: 'anthropic',
-    model: 'claude-3-7-sonnet-20250219',
-  },
-  {
-    name: 'OpenAI o3-mini (OpenAI / ChatGPT - Mới nhất, suy luận logic toán & code đỉnh cao)',
-    provider: 'openai-compatible',
-    model: 'o3-mini',
-  },
-  {
-    name: 'OpenAI o1 (OpenAI - Flagship reasoning sâu cho bài toán phức tạp)',
-    provider: 'openai-compatible',
-    model: 'o1',
-  },
-  {
-    name: 'GPT-4o (OpenAI / ChatGPT Plus - Trí tuệ tổng hợp đa nhiệm)',
-    provider: 'openai-compatible',
-    model: 'gpt-4o',
-  },
-  {
-    name: 'DeepSeek R1 (DeepSeek - Mô hình suy luận nguồn mở mạnh, giá siêu rẻ)',
-    provider: 'openai-compatible',
-    model: 'deepseek-reasoner',
-    baseURL: 'https://api.deepseek.com/v1',
-  },
-  {
-    name: 'Claude 3.5 Sonnet (Anthropic - Rất thông minh & ổn định)',
-    provider: 'anthropic',
-    model: 'claude-3-5-sonnet-latest',
-  },
-  {
-    name: 'Mistral Large 2 (Mistral AI - Suy luận chuẩn xác)',
-    provider: 'openai-compatible',
-    model: 'mistral-large-latest',
-    baseURL: 'https://api.mistral.ai/v1',
-  },
-  {
-    name: 'xAI Grok 2 (xAI - Hiệu năng cao)',
-    provider: 'openai-compatible',
-    model: 'grok-2-latest',
-    baseURL: 'https://api.x.ai/v1',
-  },
-  {
-    name: 'Ollama DeepSeek-R1 (Chạy 100% Offline tại máy)',
-    provider: 'openai-compatible',
-    model: 'deepseek-r1:14b',
-    baseURL: 'http://localhost:11434/v1',
-  },
+  { name: 'Claude 3.7 Sonnet (Anthropic)', provider: 'anthropic', model: 'claude-3-7-sonnet-20250219' },
+  { name: 'OpenAI o3-mini', provider: 'openai-compatible', model: 'o3-mini' },
+  { name: 'OpenAI o1', provider: 'openai-compatible', model: 'o1' },
+  { name: 'GPT-4o (OpenAI)', provider: 'openai-compatible', model: 'gpt-4o' },
+  { name: 'DeepSeek R1', provider: 'openai-compatible', model: 'deepseek-reasoner', baseURL: 'https://api.deepseek.com/v1' },
+  { name: 'Claude 3.5 Sonnet (Anthropic)', provider: 'anthropic', model: 'claude-3-5-sonnet-latest' },
+  { name: 'Mistral Large 2', provider: 'openai-compatible', model: 'mistral-large-latest', baseURL: 'https://api.mistral.ai/v1' },
+  { name: 'xAI Grok 2', provider: 'openai-compatible', model: 'grok-2-latest', baseURL: 'https://api.x.ai/v1' },
+  { name: 'Ollama DeepSeek-R1 (Local)', provider: 'openai-compatible', model: 'deepseek-r1:14b', baseURL: 'http://localhost:11434/v1' },
 ];
 
 const POPULAR_BUILDER_MODELS: ModelOption[] = [
-  {
-    name: 'Gemini 2.0 Flash (Google - Siêu nhanh, giá rẻ ~0, 1M context - Khuyên dùng)',
-    provider: 'google',
-    model: 'gemini-2.0-flash',
-  },
-  {
-    name: 'Mistral Codestral (Mistral AI - Model chuyên biệt viết code lập trình lừng danh)',
-    provider: 'openai-compatible',
-    model: 'codestral-latest',
-    baseURL: 'https://api.mistral.ai/v1',
-  },
-  {
-    name: 'GPT-4o-mini (OpenAI / ChatGPT - Siêu tốc, giá cực rẻ, sinh code chuẩn)',
-    provider: 'openai-compatible',
-    model: 'gpt-4o-mini',
-  },
-  {
-    name: 'OpenAI o3-mini (OpenAI - Viết code chính xác cao với tư duy reasoning)',
-    provider: 'openai-compatible',
-    model: 'o3-mini',
-  },
-  {
-    name: 'DeepSeek V3 (DeepSeek Chat - Code cực tốt, tiết kiệm chi phí tối đa)',
-    provider: 'openai-compatible',
-    model: 'deepseek-chat',
-    baseURL: 'https://api.deepseek.com/v1',
-  },
-  {
-    name: 'Llama 3.3 70B (Groq LPU - Tốc độ ánh sáng ~300-500 tokens/giây)',
-    provider: 'openai-compatible',
-    model: 'llama-3.3-70b-versatile',
-    baseURL: 'https://api.groq.com/openai/v1',
-  },
-  {
-    name: 'Qwen 2.5 Coder 32B (Alibaba - Model mã nguồn mở chuyên code hàng đầu thế giới)',
-    provider: 'openai-compatible',
-    model: 'Qwen/Qwen2.5-Coder-32B-Instruct',
-  },
-  {
-    name: 'Claude 3.5 Haiku (Anthropic - Tốc độ cao, cú pháp chuẩn)',
-    provider: 'anthropic',
-    model: 'claude-3-5-haiku-latest',
-  },
-  {
-    name: 'Ollama Qwen 2.5 Coder (Chạy 100% Offline tại máy)',
-    provider: 'openai-compatible',
-    model: 'qwen2.5-coder:32b',
-    baseURL: 'http://localhost:11434/v1',
-  },
+  { name: 'Gemini 2.0 Flash (Google)', provider: 'google', model: 'gemini-2.0-flash' },
+  { name: 'Mistral Codestral', provider: 'openai-compatible', model: 'codestral-latest', baseURL: 'https://api.mistral.ai/v1' },
+  { name: 'GPT-4o-mini (OpenAI)', provider: 'openai-compatible', model: 'gpt-4o-mini' },
+  { name: 'OpenAI o3-mini', provider: 'openai-compatible', model: 'o3-mini' },
+  { name: 'DeepSeek V3', provider: 'openai-compatible', model: 'deepseek-chat', baseURL: 'https://api.deepseek.com/v1' },
+  { name: 'Groq Llama 3.3 70B', provider: 'openai-compatible', model: 'llama-3.3-70b-versatile', baseURL: 'https://api.groq.com/openai/v1' },
+  { name: 'Qwen 2.5 Coder 32B', provider: 'openai-compatible', model: 'Qwen/Qwen2.5-Coder-32B-Instruct' },
+  { name: 'Claude 3.5 Haiku (Anthropic)', provider: 'anthropic', model: 'claude-3-5-haiku-latest' },
+  { name: 'Ollama Qwen 2.5 Coder (Local)', provider: 'openai-compatible', model: 'qwen2.5-coder:32b', baseURL: 'http://localhost:11434/v1' },
 ];
 
 const POPULAR_AUDITOR_MODELS: ModelOption[] = [
-  {
-    name: 'Claude 3.7 Sonnet (Anthropic - Soi lỗi & review pull request số 1)',
-    provider: 'anthropic',
-    model: 'claude-3-7-sonnet-20250219',
-  },
-  {
-    name: 'GPT-4o (OpenAI / ChatGPT - Thẩm định toàn diện, phát hiện bug tiềm ẩn)',
-    provider: 'openai-compatible',
-    model: 'gpt-4o',
-  },
-  {
-    name: 'OpenAI o3-mini (OpenAI - Soi logic biên chặt chẽ)',
-    provider: 'openai-compatible',
-    model: 'o3-mini',
-  },
-  {
-    name: 'DeepSeek R1 (DeepSeek Reasoning - Soi edge cases cực sâu)',
-    provider: 'openai-compatible',
-    model: 'deepseek-reasoner',
-    baseURL: 'https://api.deepseek.com/v1',
-  },
-  {
-    name: 'Claude 3.5 Sonnet (Anthropic - Đánh giá chất lượng cao)',
-    provider: 'anthropic',
-    model: 'claude-3-5-sonnet-latest',
-  },
-  {
-    name: 'Mistral Large 2 (Mistral AI)',
-    provider: 'openai-compatible',
-    model: 'mistral-large-latest',
-    baseURL: 'https://api.mistral.ai/v1',
-  },
+  { name: 'Claude 3.7 Sonnet (Anthropic)', provider: 'anthropic', model: 'claude-3-7-sonnet-20250219' },
+  { name: 'GPT-4o (OpenAI)', provider: 'openai-compatible', model: 'gpt-4o' },
+  { name: 'OpenAI o3-mini', provider: 'openai-compatible', model: 'o3-mini' },
+  { name: 'DeepSeek R1', provider: 'openai-compatible', model: 'deepseek-reasoner', baseURL: 'https://api.deepseek.com/v1' },
+  { name: 'Claude 3.5 Sonnet (Anthropic)', provider: 'anthropic', model: 'claude-3-5-sonnet-latest' },
+  { name: 'Mistral Large 2', provider: 'openai-compatible', model: 'mistral-large-latest', baseURL: 'https://api.mistral.ai/v1' },
 ];
 
 export class SecurityPrompts {
@@ -169,10 +63,10 @@ export class SecurityPrompts {
     const isDanger = this.isDangerous(command);
 
     if (isDanger) {
-      console.log(chalk.bgRed.white.bold('\n⚠️  CẢNH BÁO NGUY HIỂM: Lệnh này có thể gây mất dữ liệu!'));
-      console.log(chalk.red(`Lệnh: ${command}\n`));
+      console.log(chalk.red.bold('\n[WARNING] Potentially destructive command:'));
+      console.log(chalk.red(`  ${command}\n`));
       return await confirm({
-        message: 'Bạn có CHẮC CHẮN muốn chạy lệnh nguy hiểm này không?',
+        message: 'Execute this command?',
         default: false,
       });
     }
@@ -180,34 +74,34 @@ export class SecurityPrompts {
     if (autoAccept) return true;
 
     return await confirm({
-      message: `Chạy lệnh: ${chalk.cyan(command)}?`,
+      message: `Execute: ${chalk.cyan(command)}?`,
       default: true,
     });
   }
 
   static async promptPlanApproval(plan: Plan): Promise<'execute' | 'abort'> {
-    console.log(chalk.bold.yellow('\n' + '─'.repeat(60)));
-    console.log(chalk.bold.yellow(`📋 KẾ HOẠCH THỰC THI (ARCHITECT PLAN)`));
-    console.log(chalk.bold.white(`Mục tiêu: ${plan.goal}`));
-    console.log(chalk.gray(`Tóm tắt:  ${plan.summary}`));
-    console.log(chalk.bold.yellow('─'.repeat(60)));
+    console.log(chalk.gray('\n' + '─'.repeat(60)));
+    console.log(chalk.white.bold('Architect Plan'));
+    console.log(chalk.gray(`Goal:    `) + chalk.white(plan.goal));
+    console.log(chalk.gray(`Summary: `) + chalk.gray(plan.summary));
+    console.log(chalk.gray('─'.repeat(60)));
 
     for (const step of plan.dag) {
-      const depInfo = step.depends_on.length > 0 ? chalk.magenta(` (Phụ thuộc: ${step.depends_on.join(', ')})`) : chalk.green(' (Song song)');
-      console.log(chalk.bold.blue(`\n[${step.id}] `) + chalk.bold.white(step.title) + depInfo);
-      console.log(chalk.gray(`  Files: `) + chalk.cyan(step.target_files.join(', ')));
-      console.log(chalk.gray(`  Mô tả: `) + step.instructions);
+      const depInfo = step.depends_on.length > 0 ? chalk.gray(` (depends on ${step.depends_on.join(', ')})`) : chalk.gray(' (parallel)');
+      console.log(chalk.cyan(`\n[${step.id}] `) + chalk.white(step.title) + depInfo);
+      console.log(chalk.gray(`  Files: `) + chalk.gray(step.target_files.join(', ')));
+      console.log(chalk.gray(`  Task:  `) + chalk.gray(step.instructions));
       if (step.verification_cmd) {
-        console.log(chalk.gray(`  Test:  `) + chalk.yellow(step.verification_cmd));
+        console.log(chalk.gray(`  Test:  `) + chalk.gray(step.verification_cmd));
       }
     }
-    console.log(chalk.bold.yellow('\n' + '─'.repeat(60) + '\n'));
+    console.log(chalk.gray('\n' + '─'.repeat(60) + '\n'));
 
     const answer = await select({
-      message: 'Bạn muốn xử lý kế hoạch này như thế nào?',
+      message: 'Plan action:',
       choices: [
-        { name: '✅ Chấp thuận và bắt đầu thực thi (Execute)', value: 'execute' },
-        { name: '❌ Hủy bỏ (Abort)', value: 'abort' },
+        { name: 'Execute plan', value: 'execute' },
+        { name: 'Abort', value: 'abort' },
       ],
     });
 
@@ -223,33 +117,33 @@ export class SecurityPrompts {
       value: String(idx),
     }));
     choices.push({
-      name: '✏️  Nhập model tùy chỉnh khác (Custom model)...',
+      name: 'Custom model...',
       value: 'custom',
     });
 
     const selectedIdx = await select({
-      message: `Chọn model cho ${roleTitle}:`,
+      message: `Select model for ${roleTitle}:`,
       choices,
     });
 
     if (selectedIdx === 'custom') {
       const providerChoice = await select({
-        message: `Chọn nhà cung cấp (Provider) cho ${roleTitle}:`,
+        message: `Provider for ${roleTitle}:`,
         choices: [
-          { name: 'Anthropic (Claude)', value: 'anthropic' },
-          { name: 'Google (Gemini)', value: 'google' },
-          { name: 'OpenAI-Compatible (DeepSeek, Groq, OpenAI, Ollama...)', value: 'openai-compatible' },
+          { name: 'Anthropic', value: 'anthropic' },
+          { name: 'Google', value: 'google' },
+          { name: 'OpenAI-compatible (DeepSeek, Groq, OpenAI, Ollama)', value: 'openai-compatible' },
         ],
       });
 
       const customModel = await input({
-        message: `Nhập tên model tùy chỉnh:`,
+        message: `Model name:`,
       });
 
       let baseURL: string | undefined;
       if (providerChoice === 'openai-compatible') {
         baseURL = await input({
-          message: 'Nhập Base URL (nếu có, ví dụ https://api.deepseek.com/v1 hoặc http://localhost:11434/v1):',
+          message: 'Base URL (optional, e.g. https://api.deepseek.com/v1):',
           default: 'https://api.openai.com/v1',
         });
       }
@@ -270,40 +164,18 @@ export class SecurityPrompts {
   }
 
   static async promptOnboarding(): Promise<AppConfig> {
-    console.log(chalk.bold.cyan('\n🚀 CHÀO MỪNG BẠN ĐẾN VỚI DUO-AGENT!'));
-    console.log(chalk.gray('Hãy chọn cấu hình đội hình Agent (không cần tự gõ tên model):\n'));
+    console.log(chalk.white.bold('\nDuo Setup\nSelect model configuration:\n'));
 
     const presetChoice = await select({
-      message: 'Chọn cấu hình đội hình Agent (Preset):',
+      message: 'Configuration preset:',
       choices: [
-        {
-          name: '🥪 Tiêu chuẩn (Balanced): Claude (Architect) + Gemini 2.0 Flash (Builder) + Claude (Auditor)',
-          value: 'balanced',
-        },
-        {
-          name: '🤖 OpenAI Full-Stack: o3-mini (Architect) + GPT-4o-mini (Builder) + GPT-4o (Auditor)',
-          value: 'openai',
-        },
-        {
-          name: '💻 Codestral Specialist: Claude (Architect) + Mistral Codestral (Builder) + Claude (Auditor)',
-          value: 'codestral',
-        },
-        {
-          name: '💰 Siêu tiết kiệm (DeepSeek Team): DeepSeek-R1 (Architect) + DeepSeek-V3 (Builder) + DeepSeek-R1 (Auditor)',
-          value: 'deepseek',
-        },
-        {
-          name: '⚡ Tốc độ cao (OpenAI + Groq): o3-mini (Architect) + Groq Llama-3.3 (Builder) + GPT-4o (Auditor)',
-          value: 'fast',
-        },
-        {
-          name: '🖥️  100% Offline Local (Ollama): DeepSeek-R1 (Architect) + Qwen 2.5 Coder (Builder) + DeepSeek-R1 (Auditor)',
-          value: 'offline',
-        },
-        {
-          name: '🛠️  Tự chọn từng vai trò từ danh sách (Custom selection by role)',
-          value: 'custom',
-        },
+        { name: 'Balanced (Claude + Gemini Flash)', value: 'balanced' },
+        { name: 'OpenAI (o3-mini + GPT-4o)', value: 'openai' },
+        { name: 'Codestral (Claude + Codestral)', value: 'codestral' },
+        { name: 'DeepSeek (R1 + V3)', value: 'deepseek' },
+        { name: 'Groq Speed (o3-mini + Llama 3.3)', value: 'fast' },
+        { name: 'Local Offline (Ollama)', value: 'offline' },
+        { name: 'Custom configuration', value: 'custom' },
       ],
     });
 
@@ -368,17 +240,17 @@ export class SecurityPrompts {
         baseURL: 'http://localhost:11434/v1',
       };
     } else {
-      architectConfig = await this.selectOrCustomModel('🧠 Architect (Lên kế hoạch)', POPULAR_ARCHITECT_MODELS);
-      builderConfig = await this.selectOrCustomModel('⚡ Builder (Viết code & Test)', POPULAR_BUILDER_MODELS);
-      auditorConfig = await this.selectOrCustomModel('🔍 Auditor (Tổng duyệt)', POPULAR_AUDITOR_MODELS);
+      architectConfig = await this.selectOrCustomModel('Architect', POPULAR_ARCHITECT_MODELS);
+      builderConfig = await this.selectOrCustomModel('Builder', POPULAR_BUILDER_MODELS);
+      auditorConfig = await this.selectOrCustomModel('Auditor', POPULAR_AUDITOR_MODELS);
     }
 
     // Ask for API keys if needed
-    console.log(chalk.bold.yellow('\n🔑 NHẬP API KEY (Bấm Enter nếu bạn đã đặt trong biến môi trường):'));
+    console.log(chalk.gray('\nAPI Keys (press Enter if already set in environment):'));
 
     if (architectConfig.provider === 'anthropic' || auditorConfig.provider === 'anthropic') {
       const key = await password({
-        message: 'Anthropic API Key (Claude) [Enter nếu đã có trong ANTHROPIC_API_KEY]:',
+        message: 'Anthropic API Key [Enter to skip]:',
       });
       if (key.trim()) {
         architectConfig.apiKey = key.trim();
@@ -388,7 +260,7 @@ export class SecurityPrompts {
 
     if (builderConfig.provider === 'google') {
       const key = await password({
-        message: 'Google Gemini API Key [Enter nếu đã có trong GEMINI_API_KEY]:',
+        message: 'Google Gemini API Key [Enter to skip]:',
       });
       if (key.trim()) builderConfig.apiKey = key.trim();
     }
@@ -399,7 +271,7 @@ export class SecurityPrompts {
       auditorConfig.provider === 'openai-compatible'
     ) {
       const key = await password({
-        message: 'API Key cho dịch vụ OpenAI-compatible (DeepSeek / Groq / OpenAI) [Enter nếu đã đặt trong env]:',
+        message: 'OpenAI-compatible API Key [Enter to skip]:',
       });
       if (key.trim()) {
         if (architectConfig.provider === 'openai-compatible') architectConfig.apiKey = key.trim();
@@ -419,11 +291,11 @@ export class SecurityPrompts {
 
   static async promptChangeModel(config: AppConfig): Promise<AppConfig> {
     const roleChoice = await select({
-      message: 'Chọn vai trò bạn muốn đổi model:',
+      message: 'Select role to change model:',
       choices: [
-        { name: `🧠 Architect (${config.roles.architect.model})`, value: 'architect' },
-        { name: `⚡ Builder (${config.roles.builder.model})`, value: 'builder' },
-        { name: `🔍 Auditor (${config.roles.auditor.model})`, value: 'auditor' },
+        { name: `Architect (${config.roles.architect.model})`, value: 'architect' },
+        { name: `Builder (${config.roles.builder.model})`, value: 'builder' },
+        { name: `Auditor (${config.roles.auditor.model})`, value: 'auditor' },
       ],
     });
 
@@ -436,7 +308,7 @@ export class SecurityPrompts {
     const newRoleConfig = await this.selectOrCustomModel(targetRole, options);
 
     const apiKey = await password({
-      message: `Nhập API Key mới cho ${targetRole} (Bấm Enter để giữ nguyên):`,
+      message: `API Key for ${targetRole} [Enter to keep current]:`,
     });
     if (apiKey.trim()) {
       newRoleConfig.apiKey = apiKey.trim();
@@ -452,20 +324,16 @@ export class SecurityPrompts {
       },
     };
 
-    console.log(
-      chalk.green(
-        `\n✔ Đã cập nhật ${targetRole} sang: ${chalk.bold(newRoleConfig.model)} (${newRoleConfig.provider})`
-      )
-    );
+    console.log(chalk.green(`\n+ Updated ${targetRole} to ${newRoleConfig.model} (${newRoleConfig.provider})`));
     return updatedConfig;
   }
 
   static async promptSelectLanguage(config: AppConfig): Promise<AppConfig> {
     const langChoice = await select({
-      message: 'Select interface language / Chọn ngôn ngữ giao diện:',
+      message: 'Interface language:',
       default: config.language || 'vi',
       choices: [
-        { name: 'Vietnamese (Tiếng Việt)', value: 'vi' },
+        { name: 'Vietnamese', value: 'vi' },
         { name: 'English', value: 'en' },
       ],
     });
@@ -475,24 +343,18 @@ export class SecurityPrompts {
       language: langChoice as 'en' | 'vi',
     };
 
-    console.log(
-      chalk.green(
-        langChoice === 'en'
-          ? '\n✔ Interface language set to English!'
-          : '\n✔ Đã thiết lập ngôn ngữ giao diện sang Tiếng Việt!'
-      )
-    );
+    console.log(chalk.green(`\n+ Language set to ${langChoice === 'en' ? 'English' : 'Vietnamese'}`));
     return updatedConfig;
   }
 
   static async promptSelectTheme(config: AppConfig): Promise<AppConfig> {
     const choices = Object.values(THEMES).map((t) => ({
-      name: `${chalk.hex(t.accent)('■')} ${t.name}`,
+      name: t.name,
       value: t.id,
     }));
 
     const themeChoice = await select({
-      message: 'Chọn giao diện màu sắc Terminal (Select Terminal Color Theme):',
+      message: 'Terminal theme:',
       default: config.theme || 'cyber',
       choices,
     });
@@ -503,11 +365,7 @@ export class SecurityPrompts {
     };
 
     const chosenTheme = THEMES[themeChoice];
-    console.log(
-      chalk.hex(chosenTheme.accent)(
-        `\n✔ Đã áp dụng theme: ${chosenTheme.name}!`
-      )
-    );
+    console.log(chalk.green(`\n+ Theme set to ${chosenTheme.name}`));
     return updatedConfig;
   }
 }

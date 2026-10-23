@@ -28,10 +28,10 @@ export class SessionManager {
         }
       }
     }
-    return await this.createSession('Mặc định');
+    return await this.createSession('default');
   }
 
-  async createSession(title: string = 'Phiên mới'): Promise<SessionData> {
+  async createSession(title: string = 'default'): Promise<SessionData> {
     await this.init();
     const timestamp = new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 14);
     const slug = title
