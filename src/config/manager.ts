@@ -36,6 +36,11 @@ export class ConfigManager {
     return GLOBAL_CONFIG_FILE;
   }
 
+  static async hasExistingConfig(): Promise<boolean> {
+    const configPath = this.getConfigPath();
+    return await fs.pathExists(configPath);
+  }
+
   static async loadConfig(): Promise<AppConfig> {
     let config = { ...DEFAULT_CONFIG };
 
@@ -104,7 +109,7 @@ export class ConfigManager {
     }
   }
 
-  static getMissingKeys(config: AppConfig): string[] {
+  static getMissingKeys(config: AppConfig, isEn = true): string[] {
     const missing: string[] = [];
     const roles = [
       { name: 'Architect', role: config.roles?.architect },
@@ -114,17 +119,17 @@ export class ConfigManager {
 
     for (const { name, role } of roles) {
       if (!role) {
-        missing.push(`Role ${name} chưa được cấu hình`);
+        missing.push(isEn ? `Role ${name} is unconfigured` : `Role ${name} chưa được cấu hình`);
         continue;
       }
       if (!role.provider) {
-        missing.push(`${name}: thiếu 'provider'`);
+        missing.push(`${name}: ${isEn ? "missing 'provider'" : "thiếu 'provider'"}`);
       }
       if (!role.model) {
-        missing.push(`${name}: thiếu 'model'`);
+        missing.push(`${name}: ${isEn ? "missing 'model'" : "thiếu 'model'"}`);
       }
       if (!role.apiKey && role.provider !== 'openai-compatible') {
-        missing.push(`${name} (${role.provider}): thiếu 'apiKey'`);
+        missing.push(`${name} (${role.provider}): ${isEn ? "missing 'apiKey'" : "thiếu 'apiKey'"}`);
       }
     }
     return missing;
