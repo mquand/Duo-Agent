@@ -261,11 +261,14 @@ export class SecurityPrompts {
     }
 
     // Ask for API keys if needed
-    console.log(chalk.gray('\nAPI Keys (press Enter if already set in environment):'));
+    console.log(chalk.gray('\nAPI Keys (Enter to use detected environment variable, or paste key):'));
 
     if (architectConfig.provider === 'anthropic' || auditorConfig.provider === 'anthropic') {
+      const hasEnv = !!process.env.ANTHROPIC_API_KEY;
       const key = await password({
-        message: 'Anthropic API Key [Enter to skip]:',
+        message: hasEnv
+          ? `Anthropic API Key ${chalk.dim('[Found in $ANTHROPIC_API_KEY - press Enter to use]')}:`
+          : `Anthropic API Key ${chalk.dim('[Paste sk-ant-... or Enter to skip if using local]')}:`,
       });
       if (key.trim()) {
         architectConfig.apiKey = key.trim();
@@ -274,8 +277,11 @@ export class SecurityPrompts {
     }
 
     if (builderConfig.provider === 'google') {
+      const hasEnv = !!(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY);
       const key = await password({
-        message: 'Google Gemini API Key [Enter to skip]:',
+        message: hasEnv
+          ? `Google Gemini API Key ${chalk.dim('[Found in $GEMINI_API_KEY - press Enter to use]')}:`
+          : `Google Gemini API Key ${chalk.dim('[Paste AIzaSy... or Enter to skip if using local]')}:`,
       });
       if (key.trim()) builderConfig.apiKey = key.trim();
     }
@@ -285,8 +291,21 @@ export class SecurityPrompts {
       builderConfig.provider === 'openai-compatible' ||
       auditorConfig.provider === 'openai-compatible'
     ) {
+      const isLocal =
+        architectConfig.baseURL?.includes('localhost') ||
+        builderConfig.baseURL?.includes('localhost') ||
+        auditorConfig.baseURL?.includes('localhost');
+      const hasEnv = !!(process.env.OPENAI_API_KEY || process.env.DEEPSEEK_API_KEY || process.env.GROQ_API_KEY);
+
+      let hint = chalk.dim('[Paste sk-... or Enter to skip]');
+      if (isLocal) {
+        hint = chalk.dim('[Optional for local/Ollama - press Enter to skip]');
+      } else if (hasEnv) {
+        hint = chalk.dim('[Found in env - press Enter to use]');
+      }
+
       const key = await password({
-        message: 'OpenAI-compatible API Key [Enter to skip]:',
+        message: `OpenAI-compatible API Key ${hint}:`,
       });
       if (key.trim()) {
         if (architectConfig.provider === 'openai-compatible') architectConfig.apiKey = key.trim();
@@ -322,13 +341,18 @@ export class SecurityPrompts {
 
     const newRoleConfig = await this.selectOrCustomModel(targetRole, options);
 
+    const currentKey = config.roles[targetRole]?.apiKey;
+    const keyHint = currentKey
+      ? chalk.dim('[Enter to keep current]')
+      : chalk.dim('[Paste key or Enter if set in env]');
+
     const apiKey = await password({
-      message: `API Key for ${targetRole} [Enter to keep current]:`,
+      message: `API Key for ${targetRole} ${keyHint}:`,
     });
     if (apiKey.trim()) {
       newRoleConfig.apiKey = apiKey.trim();
     } else {
-      newRoleConfig.apiKey = config.roles[targetRole].apiKey;
+      newRoleConfig.apiKey = config.roles[targetRole]?.apiKey;
     }
 
     const updatedConfig: AppConfig = {
