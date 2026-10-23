@@ -37,6 +37,30 @@ import { AppConfig, ExecutionOptions, SessionData } from './types/index.js';
 const execAsync = promisify(exec);
 const program = new Command();
 
+// Gracefully exit on Ctrl+C / SIGINT without unhandled Inquirer rejection dump
+process.on('SIGINT', () => {
+  console.log();
+  process.exit(0);
+});
+
+process.on('uncaughtException', (err: any) => {
+  if (err?.name === 'ExitPromptError' || err?.message?.includes('force closed the prompt')) {
+    console.log();
+    process.exit(0);
+  }
+  console.error(err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason: any) => {
+  if (reason?.name === 'ExitPromptError' || reason?.message?.includes('force closed the prompt')) {
+    console.log();
+    process.exit(0);
+  }
+  console.error(reason);
+  process.exit(1);
+});
+
 const SLASH_COMMANDS_LIST = [
   '/help',
   '/model',

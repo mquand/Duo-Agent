@@ -119,6 +119,11 @@ export const promptWithSuggestions = createPrompt<string, SuggestPromptConfig>((
   useKeypress((key, rl) => {
     if (status !== 'idle') return;
 
+    if (key.ctrl && key.name === 'c') {
+      console.log();
+      process.exit(0);
+    }
+
     if (isEnterKey(key)) {
       let finalAnswer = rl.line || value;
       if (
