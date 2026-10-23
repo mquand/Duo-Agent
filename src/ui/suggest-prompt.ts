@@ -9,6 +9,7 @@ import {
   isDownKey,
 } from '@inquirer/core';
 import chalk from 'chalk';
+import path from 'path';
 
 export interface SlashCommandItem {
   name: string;
@@ -41,6 +42,7 @@ export interface SuggestPromptConfig {
   message: string;
   isEn?: boolean;
   history?: string[];
+  files?: string[];
 }
 
 export const promptWithSuggestions = createPrompt<string, SuggestPromptConfig>((config, done) => {
@@ -49,7 +51,7 @@ export const promptWithSuggestions = createPrompt<string, SuggestPromptConfig>((
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [historyIndex, setHistoryIndex] = useState<number>(-1);
 
-  // Compute matching commands if typing a slash command
+  // 1. Compute matching commands if typing a slash command
   let matches: SlashCommandItem[] = [];
   if (value.startsWith('/')) {
     const query = value.toLowerCase().trim();
@@ -57,6 +59,31 @@ export const promptWithSuggestions = createPrompt<string, SuggestPromptConfig>((
       if (query === '/') return true;
       return cmd.name.toLowerCase().startsWith(query);
     });
+  }
+
+  // 2. Compute matching files if typing @file
+  const atMatch = value.match(/(?:^|\s)@([a-zA-Z0-9_\-\.\/]*)$/);
+  let fileMatches: string[] = [];
+  if (!value.startsWith('/') && atMatch && config.files && config.files.length > 0) {
+    const query = atMatch[1].toLowerCase();
+    fileMatches = config.files.filter((f) => {
+      if (!query) return true;
+      const lower = f.toLowerCase();
+      const base = path.basename(lower);
+      return base.startsWith(query) || lower.startsWith(query) || lower.includes(query);
+    });
+
+    if (query) {
+      fileMatches.sort((a, b) => {
+        const aBase = path.basename(a).toLowerCase();
+        const bBase = path.basename(b).toLowerCase();
+        const aStarts = aBase.startsWith(query) || a.toLowerCase().startsWith(query);
+        const bStarts = bBase.startsWith(query) || b.toLowerCase().startsWith(query);
+        if (aStarts && !bStarts) return -1;
+        if (!aStarts && bStarts) return 1;
+        return a.length - b.length;
+      });
+    }
   }
 
   useKeypress((key, rl) => {
@@ -70,14 +97,43 @@ export const promptWithSuggestions = createPrompt<string, SuggestPromptConfig>((
         selectedIndex < matches.length &&
         !matches.some((m) => m.name === finalAnswer.trim())
       ) {
-        finalAnswer = matches[selectedIndex].name;
+        finalAnswer = matches[selectedIndex % matches.length].name;
+        setStatus('done');
+        done(finalAnswer);
+        return;
       }
+
+      // If user is actively selecting an @file suggestion
+      if (!value.startsWith('/') && atMatch && fileMatches.length > 0) {
+        const selectedFile = fileMatches[selectedIndex % fileMatches.length];
+        const currentToken = atMatch[1];
+        if (currentToken !== selectedFile) {
+          const atStart = atMatch.index! + (atMatch[0].startsWith(' ') ? 1 : 0);
+          const prefix = value.substring(0, atStart);
+          const target = `${prefix}@${selectedFile} `;
+          setValue(target);
+          rl.clearLine(0);
+          rl.write(target);
+          setSelectedIndex(0);
+          return;
+        }
+      }
+
       setStatus('done');
       done(finalAnswer);
     } else if (isTabKey(key)) {
       // Tab to autocomplete selected suggestion
-      if (matches.length > 0) {
+      if (value.startsWith('/') && matches.length > 0) {
         const target = matches[selectedIndex % matches.length].name + ' ';
+        setValue(target);
+        rl.clearLine(0);
+        rl.write(target);
+        setSelectedIndex(0);
+      } else if (!value.startsWith('/') && atMatch && fileMatches.length > 0) {
+        const selectedFile = fileMatches[selectedIndex % fileMatches.length];
+        const atStart = atMatch.index! + (atMatch[0].startsWith(' ') ? 1 : 0);
+        const prefix = value.substring(0, atStart);
+        const target = `${prefix}@${selectedFile} `;
         setValue(target);
         rl.clearLine(0);
         rl.write(target);
@@ -86,6 +142,8 @@ export const promptWithSuggestions = createPrompt<string, SuggestPromptConfig>((
     } else if (isDownKey(key)) {
       if (value.startsWith('/') && matches.length > 0) {
         setSelectedIndex((selectedIndex + 1) % matches.length);
+      } else if (!value.startsWith('/') && atMatch && fileMatches.length > 0) {
+        setSelectedIndex((selectedIndex + 1) % fileMatches.length);
       } else if (config.history && config.history.length > 0) {
         // Navigate forward in prompt history
         if (historyIndex !== -1) {
@@ -106,6 +164,8 @@ export const promptWithSuggestions = createPrompt<string, SuggestPromptConfig>((
     } else if (isUpKey(key)) {
       if (value.startsWith('/') && matches.length > 0) {
         setSelectedIndex((selectedIndex - 1 + matches.length) % matches.length);
+      } else if (!value.startsWith('/') && atMatch && fileMatches.length > 0) {
+        setSelectedIndex((selectedIndex - 1 + fileMatches.length) % fileMatches.length);
       } else if (config.history && config.history.length > 0) {
         // Navigate backward in prompt history
         const nextIndex =
@@ -132,18 +192,32 @@ export const promptWithSuggestions = createPrompt<string, SuggestPromptConfig>((
 
   const promptLine = `${config.message}${value}`;
 
-  if (status === 'done' || !value.startsWith('/') || matches.length === 0) {
+  if (status === 'done') {
     return [promptLine, ''];
   }
 
-  // Render suggestion popup (up to 5 items)
-  const renderedList = matches.slice(0, 5).map((m, idx) => {
-    const isSelected = idx === (selectedIndex % matches.length);
-    const pointer = isSelected ? chalk.cyan('› ') : '  ';
-    const cmdFormatted = isSelected ? chalk.bold.cyan(m.name) : chalk.white(m.name);
-    const descFormatted = chalk.gray(m.desc);
-    return `${pointer}${cmdFormatted.padEnd(16)} ${descFormatted}`;
-  }).join('\n');
+  // Render slash commands suggestion popup (up to 5 items)
+  if (value.startsWith('/') && matches.length > 0) {
+    const renderedList = matches.slice(0, 5).map((m, idx) => {
+      const isSelected = idx === (selectedIndex % matches.length);
+      const pointer = isSelected ? chalk.cyan('› ') : '  ';
+      const cmdFormatted = isSelected ? chalk.bold.cyan(m.name) : chalk.white(m.name);
+      const descFormatted = chalk.gray(m.desc);
+      return `${pointer}${cmdFormatted.padEnd(16)} ${descFormatted}`;
+    }).join('\n');
+    return [promptLine, '\n' + renderedList];
+  }
 
-  return [promptLine, '\n' + renderedList];
+  // Render @file suggestion popup (up to 6 items)
+  if (!value.startsWith('/') && atMatch && fileMatches.length > 0) {
+    const renderedList = fileMatches.slice(0, 6).map((file, idx) => {
+      const isSelected = idx === (selectedIndex % fileMatches.length);
+      const pointer = isSelected ? chalk.cyan('› ') : '  ';
+      const fileFormatted = isSelected ? chalk.bold.cyan(`@${file}`) : chalk.white(`@${file}`);
+      return `${pointer}${fileFormatted}`;
+    }).join('\n');
+    return [promptLine, '\n' + renderedList];
+  }
+
+  return [promptLine, ''];
 });

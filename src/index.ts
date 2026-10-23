@@ -379,6 +379,7 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
   console.log(chalk.gray(cwd) + '\n');
 
   const history = await HistoryManager.loadHistory();
+  let projectFiles = await CodeGraph.scanFiles(process.cwd(), 500);
 
   while (true) {
     const isCustomSession = currentSession.title && !['default', 'mặc định', 'phiên mới', 'main'].includes(currentSession.title.toLowerCase());
@@ -391,6 +392,7 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
         message: chalk.bold.cyan(promptLabel),
         isEn,
         history,
+        files: projectFiles,
       });
     } catch {
       break;
@@ -760,6 +762,9 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
     await HistoryManager.append(action);
     history.push(action);
     await runWorkflow(action, { autoAccept: false }, config, sessionManager, currentSession);
+    try {
+      projectFiles = await CodeGraph.scanFiles(process.cwd(), 500);
+    } catch {}
   }
 }
 
