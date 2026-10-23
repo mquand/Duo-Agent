@@ -38,6 +38,41 @@ const DEFAULT_CONFIG: AppConfig = {
   telemetry: false,
 };
 
+export const ENV_TEMPLATE = `# ==============================================================================
+# Duo-Agent Environment Configuration
+# Put your API keys below. Duo-Agent automatically reads ~/.duo/.env and .env
+# ==============================================================================
+
+# Anthropic Claude (Claude Opus 5.5, Sonnet 5.5, Claude 3.7 Sonnet)
+# Get key: https://console.anthropic.com/settings/keys
+ANTHROPIC_API_KEY=
+
+# Google Gemini (Gemini 2.0 Flash, Gemini 1.5 Pro)
+# Get key: https://aistudio.google.com/app/apikey
+GEMINI_API_KEY=
+
+# OpenAI (GPT-4o, o3-mini, o1)
+# Get key: https://platform.openai.com/api-keys
+OPENAI_API_KEY=
+
+# DeepSeek (DeepSeek R1 Reasoner, DeepSeek V3)
+# Get key: https://platform.deepseek.com/api_keys
+DEEPSEEK_API_KEY=
+
+# Groq (High-speed Llama 3.3 70B)
+# Get key: https://console.groq.com/keys
+GROQ_API_KEY=
+
+# Mistral AI (Codestral, Mistral Large 2)
+# Get key: https://console.mistral.ai/api-keys/
+MISTRAL_API_KEY=
+
+# Local Offline (Ollama)
+# No API key needed! Simply run Ollama on your machine:
+#   ollama pull deepseek-r1:14b
+#   ollama pull qwen2.5-coder:32b
+`;
+
 export class ConfigManager {
   static getConfigPath(): string {
     if (fs.existsSync(LOCAL_CONFIG_FILE)) {
@@ -51,7 +86,24 @@ export class ConfigManager {
     return await fs.pathExists(configPath);
   }
 
+  static async ensureEnvTemplate(): Promise<void> {
+    try {
+      await fs.ensureDir(GLOBAL_CONFIG_DIR);
+      const exampleFile = path.join(GLOBAL_CONFIG_DIR, '.env.example');
+      if (!(await fs.pathExists(exampleFile))) {
+        await fs.writeFile(exampleFile, ENV_TEMPLATE, 'utf-8');
+      }
+      const envFile = path.join(GLOBAL_CONFIG_DIR, '.env');
+      if (!(await fs.pathExists(envFile))) {
+        await fs.writeFile(envFile, ENV_TEMPLATE, 'utf-8');
+      }
+    } catch {
+      // Ignore write errors
+    }
+  }
+
   static async loadConfig(): Promise<AppConfig> {
+    await this.ensureEnvTemplate();
     let config = { ...DEFAULT_CONFIG };
 
     const configPath = this.getConfigPath();
