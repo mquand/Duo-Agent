@@ -80,10 +80,21 @@ If creating a brand new file, use:
         currentPrompt += `\n\n⚠️ PREVIOUS ATTEMPT FAILED WITH ERROR:\n${lastError}\nAnalyze the root cause and provide corrected SEARCH/REPLACE blocks!`;
       }
 
-      const response = await this.provider.generate([
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: currentPrompt },
-      ]);
+      let response;
+      try {
+        response = await this.provider.generate([
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: currentPrompt },
+        ]);
+      } catch (genErr: any) {
+        lastError = `Model error: ${genErr.message || String(genErr)}`;
+        return {
+          success: false,
+          modifiedFiles,
+          error: lastError,
+          patchPreviews,
+        };
+      }
 
       const blocks = DiffEngine.parseDiffBlocks(response.text, step.target_files[0]);
       if (blocks.length === 0) {
