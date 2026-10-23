@@ -26,6 +26,7 @@ import { BuilderAgent } from './agents/builder.js';
 import { AuditorAgent } from './agents/auditor.js';
 import { Logger } from './ui/logger.js';
 import { SecurityPrompts } from './ui/prompts.js';
+import { promptWithSuggestions } from './ui/suggest-prompt.js';
 import { AppConfig, ExecutionOptions, SessionData } from './types/index.js';
 
 const execAsync = promisify(exec);
@@ -325,7 +326,10 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
 
     let userInput: string;
     try {
-      userInput = await promptUser(chalk.bold.cyan(promptLabel));
+      userInput = await promptWithSuggestions({
+        message: chalk.bold.cyan(promptLabel),
+        isEn,
+      });
     } catch {
       break;
     }
