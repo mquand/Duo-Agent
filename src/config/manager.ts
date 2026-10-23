@@ -14,7 +14,7 @@ const DEFAULT_CONFIG: AppConfig = {
   roles: {
     architect: {
       provider: 'anthropic',
-      model: 'claude-3-7-sonnet-20250219',
+      model: 'claude-sonnet-5-5',
     },
     builder: {
       provider: 'google',
@@ -22,7 +22,7 @@ const DEFAULT_CONFIG: AppConfig = {
     },
     auditor: {
       provider: 'anthropic',
-      model: 'claude-3-7-sonnet-20250219',
+      model: 'claude-sonnet-5-5',
     },
   },
   telemetry: false,

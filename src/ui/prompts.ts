@@ -22,6 +22,10 @@ interface ModelOption {
 }
 
 const POPULAR_ARCHITECT_MODELS: ModelOption[] = [
+  { name: 'Claude Opus 5.5 (Anthropic)', provider: 'anthropic', model: 'claude-opus-5-5' },
+  { name: 'Claude Sonnet 5.5 (Anthropic)', provider: 'anthropic', model: 'claude-sonnet-5-5' },
+  { name: 'GPT-6 Astra (OpenAI flagship)', provider: 'openai-compatible', model: 'gpt-6-astra' },
+  { name: 'GPT-6.1 Sol (OpenAI)', provider: 'openai-compatible', model: 'gpt-6.1-sol' },
   { name: 'Claude 3.7 Sonnet (Anthropic)', provider: 'anthropic', model: 'claude-3-7-sonnet-20250219' },
   { name: 'OpenAI o3-mini', provider: 'openai-compatible', model: 'o3-mini' },
   { name: 'OpenAI o1', provider: 'openai-compatible', model: 'o1' },
@@ -35,22 +39,28 @@ const POPULAR_ARCHITECT_MODELS: ModelOption[] = [
 
 const POPULAR_BUILDER_MODELS: ModelOption[] = [
   { name: 'Gemini 2.0 Flash (Google)', provider: 'google', model: 'gemini-2.0-flash' },
+  { name: 'GPT-6 Luna (OpenAI fast/cheap)', provider: 'openai-compatible', model: 'gpt-6-luna' },
+  { name: 'GPT-6.1 Sol (OpenAI)', provider: 'openai-compatible', model: 'gpt-6.1-sol' },
+  { name: 'Claude Haiku 5.5 (Anthropic)', provider: 'anthropic', model: 'claude-haiku-5-5' },
+  { name: 'Claude Sonnet 5.5 (Anthropic)', provider: 'anthropic', model: 'claude-sonnet-5-5' },
   { name: 'Mistral Codestral', provider: 'openai-compatible', model: 'codestral-latest', baseURL: 'https://api.mistral.ai/v1' },
   { name: 'GPT-4o-mini (OpenAI)', provider: 'openai-compatible', model: 'gpt-4o-mini' },
   { name: 'OpenAI o3-mini', provider: 'openai-compatible', model: 'o3-mini' },
   { name: 'DeepSeek V3', provider: 'openai-compatible', model: 'deepseek-chat', baseURL: 'https://api.deepseek.com/v1' },
   { name: 'Groq Llama 3.3 70B', provider: 'openai-compatible', model: 'llama-3.3-70b-versatile', baseURL: 'https://api.groq.com/openai/v1' },
   { name: 'Qwen 2.5 Coder 32B', provider: 'openai-compatible', model: 'Qwen/Qwen2.5-Coder-32B-Instruct' },
-  { name: 'Claude 3.5 Haiku (Anthropic)', provider: 'anthropic', model: 'claude-3-5-haiku-latest' },
   { name: 'Ollama Qwen 2.5 Coder (Local)', provider: 'openai-compatible', model: 'qwen2.5-coder:32b', baseURL: 'http://localhost:11434/v1' },
 ];
 
 const POPULAR_AUDITOR_MODELS: ModelOption[] = [
+  { name: 'Claude Opus 5.5 (Anthropic)', provider: 'anthropic', model: 'claude-opus-5-5' },
+  { name: 'Claude Sonnet 5.5 (Anthropic)', provider: 'anthropic', model: 'claude-sonnet-5-5' },
+  { name: 'GPT-6 Astra (OpenAI flagship)', provider: 'openai-compatible', model: 'gpt-6-astra' },
+  { name: 'GPT-6.1 Sol (OpenAI)', provider: 'openai-compatible', model: 'gpt-6.1-sol' },
   { name: 'Claude 3.7 Sonnet (Anthropic)', provider: 'anthropic', model: 'claude-3-7-sonnet-20250219' },
   { name: 'GPT-4o (OpenAI)', provider: 'openai-compatible', model: 'gpt-4o' },
   { name: 'OpenAI o3-mini', provider: 'openai-compatible', model: 'o3-mini' },
   { name: 'DeepSeek R1', provider: 'openai-compatible', model: 'deepseek-reasoner', baseURL: 'https://api.deepseek.com/v1' },
-  { name: 'Claude 3.5 Sonnet (Anthropic)', provider: 'anthropic', model: 'claude-3-5-sonnet-latest' },
   { name: 'Mistral Large 2', provider: 'openai-compatible', model: 'mistral-large-latest', baseURL: 'https://api.mistral.ai/v1' },
 ];
 
@@ -169,11 +179,12 @@ export class SecurityPrompts {
     const presetChoice = await select({
       message: 'Configuration preset:',
       choices: [
-        { name: 'Balanced (Claude + Gemini Flash)', value: 'balanced' },
-        { name: 'OpenAI (o3-mini + GPT-4o)', value: 'openai' },
+        { name: 'Claude 5.5 Flagship (Opus 5.5 + Gemini Flash + Sonnet 5.5)', value: 'flagship' },
+        { name: 'OpenAI GPT-6 (GPT-6 Astra + GPT-6 Luna + GPT-6 Sol)', value: 'gpt6' },
+        { name: 'Balanced (Claude Sonnet 5.5 + Gemini Flash + Sonnet 5.5)', value: 'balanced' },
+        { name: 'DeepSeek (R1 + V3 + R1)', value: 'deepseek' },
         { name: 'Codestral (Claude + Codestral)', value: 'codestral' },
-        { name: 'DeepSeek (R1 + V3)', value: 'deepseek' },
-        { name: 'Groq Speed (o3-mini + Llama 3.3)', value: 'fast' },
+        { name: 'Groq Speed (Claude Sonnet 5.5 + Llama 3.3)', value: 'fast' },
         { name: 'Local Offline (Ollama)', value: 'offline' },
         { name: 'Custom configuration', value: 'custom' },
       ],
@@ -183,22 +194,26 @@ export class SecurityPrompts {
     let builderConfig: RoleConfig;
     let auditorConfig: RoleConfig;
 
-    if (presetChoice === 'balanced') {
-      architectConfig = { provider: 'anthropic', model: 'claude-3-7-sonnet-20250219' };
+    if (presetChoice === 'flagship') {
+      architectConfig = { provider: 'anthropic', model: 'claude-opus-5-5' };
       builderConfig = { provider: 'google', model: 'gemini-2.0-flash' };
-      auditorConfig = { provider: 'anthropic', model: 'claude-3-7-sonnet-20250219' };
-    } else if (presetChoice === 'openai') {
-      architectConfig = { provider: 'openai-compatible', model: 'o3-mini' };
-      builderConfig = { provider: 'openai-compatible', model: 'gpt-4o-mini' };
-      auditorConfig = { provider: 'openai-compatible', model: 'gpt-4o' };
+      auditorConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
+    } else if (presetChoice === 'gpt6') {
+      architectConfig = { provider: 'openai-compatible', model: 'gpt-6-astra' };
+      builderConfig = { provider: 'openai-compatible', model: 'gpt-6-luna' };
+      auditorConfig = { provider: 'openai-compatible', model: 'gpt-6.1-sol' };
+    } else if (presetChoice === 'balanced') {
+      architectConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
+      builderConfig = { provider: 'google', model: 'gemini-2.0-flash' };
+      auditorConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
     } else if (presetChoice === 'codestral') {
-      architectConfig = { provider: 'anthropic', model: 'claude-3-7-sonnet-20250219' };
+      architectConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
       builderConfig = {
         provider: 'openai-compatible',
         model: 'codestral-latest',
         baseURL: 'https://api.mistral.ai/v1',
       };
-      auditorConfig = { provider: 'anthropic', model: 'claude-3-7-sonnet-20250219' };
+      auditorConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
     } else if (presetChoice === 'deepseek') {
       architectConfig = {
         provider: 'openai-compatible',
@@ -216,13 +231,13 @@ export class SecurityPrompts {
         baseURL: 'https://api.deepseek.com/v1',
       };
     } else if (presetChoice === 'fast') {
-      architectConfig = { provider: 'openai-compatible', model: 'o3-mini' };
+      architectConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
       builderConfig = {
         provider: 'openai-compatible',
         model: 'llama-3.3-70b-versatile',
         baseURL: 'https://api.groq.com/openai/v1',
       };
-      auditorConfig = { provider: 'openai-compatible', model: 'gpt-4o' };
+      auditorConfig = { provider: 'anthropic', model: 'claude-haiku-5-5' };
     } else if (presetChoice === 'offline') {
       architectConfig = {
         provider: 'openai-compatible',
