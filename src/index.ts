@@ -130,6 +130,16 @@ program
   });
 
 program
+  .command('key')
+  .alias('keys')
+  .description('Manage, update, or remove API keys for AI models')
+  .action(async () => {
+    let config = await ConfigManager.loadConfig();
+    config = await SecurityPrompts.promptKeyManagement(config);
+    await ConfigManager.saveConfig(config);
+  });
+
+program
   .command('theme [themeName]')
   .description('Terminal theme: cyber, dracula, nord, monokai, matrix, sunset')
   .action(async (themeArg) => {

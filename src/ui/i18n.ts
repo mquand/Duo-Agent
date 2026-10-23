@@ -27,6 +27,7 @@ export const i18n = {
       { cmd: '/lang', desc: isEn ? 'Switch language (English / Vietnamese)' : 'Đổi ngôn ngữ giao diện (English / Vietnamese)' },
       { cmd: '/theme', desc: isEn ? 'Select terminal theme' : 'Chọn giao diện màu sắc Terminal' },
       { cmd: '/model', desc: isEn ? 'Switch models for Architect, Builder, Auditor' : 'Đổi model cho từng vai trò' },
+      { cmd: '/key', desc: isEn ? 'Manage, update or remove API keys' : 'Quản lý, cập nhật hoặc xóa API Key' },
       { cmd: '/cost', desc: isEn ? 'Display cumulative token usage & cost' : 'Thống kê chi phí & tokens phiên hiện tại' },
       { cmd: '/commit [msg]', desc: isEn ? 'Auto-generate conventional commit & commit git' : 'Tự động tạo commit message & commit git' },
       { cmd: '/add <file>', desc: isEn ? 'Pin file into agent context' : 'Ghim file hoặc thư mục vào ngữ cảnh' },
@@ -60,6 +61,7 @@ export const i18n = {
       { cmd: 'duo --sessions', desc: isEn ? 'List all sessions' : 'Xem danh sách các phiên làm việc' },
       { cmd: 'duo --undo', desc: isEn ? 'Rollback changes' : 'Khôi phục code về checkpoint an toàn' },
       { cmd: 'duo monitor', desc: isEn ? 'Real-time activity & diff monitor' : 'Mở màn hình theo dõi hoạt động thời gian thực' },
+      { cmd: 'duo key', desc: isEn ? 'Manage, update or remove API keys' : 'Quản lý, cập nhật hoặc xóa API Key' },
       { cmd: 'duo theme [name]', desc: isEn ? 'Change terminal theme' : 'Đổi giao diện màu sắc Terminal' },
       { cmd: 'duo lang [en|vi]', desc: isEn ? 'Set CLI language' : 'Thiết lập ngôn ngữ mặc định' },
     ];

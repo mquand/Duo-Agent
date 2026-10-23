@@ -45,9 +45,29 @@ Any OpenAI-compatible server (Ollama, vLLM, LMStudio, OpenRouter, Groq, DeepSeek
 }
 ```
 
+### Custom Models & Custom Endpoints
+
+Duo-Agent provides 100% freedom to use **any custom model or custom endpoint**. You are never locked to pre-configured models:
+- **OpenRouter**: Access 300+ models with 1 unified key (`baseURL: "https://openrouter.ai/api/v1"`).
+- **Local Ollama**: Run any local open-source LLM offline without API keys (`baseURL: "http://localhost:11434/v1"`).
+- **Local vLLM / LM Studio / LocalAI**: Connect to any locally-hosted OpenAI-compatible server.
+- **DeepSeek / Groq / Mistral / Together**: Connect directly via official APIs.
+- **Pure Custom**: Specify any arbitrary base URL and model name.
+
+Use the interactive `/model` command in the Duo shell or pass `--model` to configure.
+
 ---
 
-## 2. Configuration & Environment Hierarchy
+## 2. API Key Management (`/key` & `duo key`)
+
+Duo-Agent gives you full control over your credentials:
+- **Interactive Management**: Run `/key` in the shell or `duo key` from your terminal to view all active keys (masked for security), update a specific role's key, remove/clear an individual key, or clear all stored keys at once.
+- **Removing a Key**: If you no longer wish to use a cloud API key (e.g. switching to local Ollama or delegating to system environment variables), simply enter `none` or `clear` during key prompts, or use `/key` -> *Remove / Clear API Key*.
+- **Local / Offline Exemption**: Selecting local endpoints (`localhost` or `127.0.0.1`) automatically exempts the role from requiring any API key.
+
+---
+
+## 3. Configuration & Environment Hierarchy
 
 Duo-Agent resolves configuration and credentials using a layered cascade:
 

@@ -26,6 +26,8 @@ const execAsync = promisify(exec);
 export const SLASH_COMMANDS_LIST = [
   '/help',
   '/model',
+  '/key',
+  '/keys',
   '/rules',
   '/effort',
   '/benchmark',
@@ -150,6 +152,7 @@ export async function handleSlashCommand(context: CommandContext): Promise<Comma
       choices: [
         { name: `${chalk.cyan('/help')}      ${chalk.gray(isEn ? 'Display command reference' : 'Xem trợ giúp tra cứu lệnh')}`, value: '/help' },
         { name: `${chalk.cyan('/model')}     ${chalk.gray(isEn ? 'Switch AI models (Claude 5.5, GPT-6...)' : 'Đổi AI model cho từng vai trò')}`, value: '/model' },
+        { name: `${chalk.cyan('/key')}       ${chalk.gray(isEn ? 'Manage, update or remove API keys' : 'Quản lý, đổi hoặc xóa API Key')}`, value: '/key' },
         { name: `${chalk.cyan('/rules')}     ${chalk.gray(isEn ? 'View or configure repo guidelines (.duorules)' : 'Xem hoặc cấu hình quy ước repo (.duorules)')}`, value: '/rules' },
         { name: `${chalk.cyan('/theme')}     ${chalk.gray(isEn ? 'Select terminal color theme' : 'Đổi giao diện màu sắc Terminal')}`, value: '/theme' },
         { name: `${chalk.cyan('/lang')}      ${chalk.gray(isEn ? 'Switch interface language' : 'Đổi ngôn ngữ giao diện (en / vi)')}`, value: '/lang' },
@@ -478,6 +481,12 @@ export async function handleSlashCommand(context: CommandContext): Promise<Comma
 
   if (action === '/model' || action === '/change_model') {
     config = await SecurityPrompts.promptChangeModel(config);
+    await ConfigManager.saveConfig(config);
+    return { handled: true, config };
+  }
+
+  if (action === '/key' || action === '/keys') {
+    config = await SecurityPrompts.promptKeyManagement(config);
     await ConfigManager.saveConfig(config);
     return { handled: true, config };
   }
