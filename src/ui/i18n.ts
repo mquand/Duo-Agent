@@ -34,6 +34,7 @@ export const i18n = {
       { cmd: '/diff', desc: isEn ? 'Preview uncommitted git changes' : 'Xem các thay đổi git hiện tại' },
       { cmd: '/undo', desc: isEn ? 'Rollback working tree to checkpoint' : 'Khôi phục mã nguồn về checkpoint ban đầu' },
       { cmd: '/config', desc: isEn ? 'Display active configuration' : 'Xem cấu hình hiện tại' },
+      { cmd: '! <cmd>', desc: isEn ? 'Run system shell command (e.g. ! git status, ! ls)' : 'Chạy lệnh shell hệ thống (ví dụ ! git status, ! ls)' },
       { cmd: '/exit, /quit', desc: isEn ? 'Exit shell' : 'Thoát khỏi chương trình' },
     ];
 

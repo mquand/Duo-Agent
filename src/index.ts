@@ -281,45 +281,78 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
       break;
     }
 
-    const trimmed = userInput.trim();
-    if (!trimmed) continue;
+    let action = userInput.trim();
+    if (!action) continue;
 
-    if (trimmed === '/exit' || trimmed === '/quit') {
+    // Run direct system shell command with ! prefix
+    if (action.startsWith('!')) {
+      const shCmd = action.slice(1).trim();
+      if (shCmd) {
+        try {
+          const { stdout, stderr } = await execAsync(shCmd);
+          if (stdout) console.log(stdout.trimEnd());
+          if (stderr) console.error(chalk.yellow(stderr.trimEnd()));
+        } catch (err: any) {
+          console.error(chalk.red(err.message));
+        }
+      }
+      continue;
+    }
+
+    // Auto-normalize if user enters terminal commands starting with 'duo' inside the shell
+    if (action.startsWith('duo ') || action === 'duo') {
+      const duoArg = action.replace(/^duo\s*/, '').trim();
+      if (duoArg === '--undo' || duoArg === 'undo') {
+        action = '/undo';
+      } else if (duoArg === '--sessions' || duoArg === 'sessions') {
+        action = '/sessions';
+      } else if (duoArg === 'help' || duoArg === '--help' || duoArg === '-h') {
+        action = '/help';
+      } else if (duoArg.startsWith('-p ') || duoArg.startsWith('--plan-only ')) {
+        action = '/plan ' + duoArg.replace(/^(-p|--plan-only)\s+/, '').replace(/^["']|["']$/g, '');
+      } else if (duoArg) {
+        action = duoArg.replace(/^["']|["']$/g, '');
+      } else {
+        continue;
+      }
+    }
+
+    if (action === '/exit' || action === '/quit') {
       console.log(chalk.gray(isEn ? 'Goodbye!' : 'Tạm biệt!'));
       break;
     }
 
-    if (trimmed === '/clear') {
+    if (action === '/clear') {
       console.clear();
       continue;
     }
 
-    if (trimmed === '/help') {
+    if (action === '/help') {
       i18n.printHelp();
       continue;
     }
 
-    if (trimmed === '/lang' || trimmed === '/language') {
+    if (action === '/lang' || action === '/language') {
       config = await SecurityPrompts.promptSelectLanguage(config);
       i18n.setLanguage(config.language || 'vi');
       await ConfigManager.saveConfig(config);
       continue;
     }
 
-    if (trimmed === '/theme') {
+    if (action === '/theme') {
       config = await SecurityPrompts.promptSelectTheme(config);
       await ConfigManager.saveConfig(config);
       Logger.printBanner(config.theme);
       continue;
     }
 
-    if (trimmed === '/sessions') {
+    if (action === '/sessions') {
       await printSessionsList(sessionManager);
       continue;
     }
 
-    if (trimmed.startsWith('/switch ')) {
-      const target = trimmed.replace('/switch ', '').trim();
+    if (action.startsWith('/switch ')) {
+      const target = action.replace('/switch ', '').trim();
       try {
         currentSession = await sessionManager.switchSession(target);
         console.log(chalk.green(`\n+ Switched to session: ${currentSession.title} [${currentSession.id}]\n`));
@@ -329,14 +362,14 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
       continue;
     }
 
-    if (trimmed.startsWith('/new ')) {
-      const title = trimmed.replace('/new ', '').trim();
+    if (action.startsWith('/new ')) {
+      const title = action.replace('/new ', '').trim();
       currentSession = await sessionManager.createSession(title);
       console.log(chalk.green(`\n+ Created session: ${currentSession.title} [${currentSession.id}]\n`));
       continue;
     }
 
-    if (trimmed === '/session') {
+    if (action === '/session') {
       console.log(chalk.white.bold(`\nSession: ${currentSession.title}`));
       console.log(chalk.gray(`- ID:        ${currentSession.id}`));
       console.log(chalk.gray(`- Created:   ${new Date(currentSession.createdAt).toLocaleString()}`));
@@ -352,19 +385,19 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
       continue;
     }
 
-    if (trimmed === '/model' || trimmed === '/change_model') {
+    if (action === '/model' || action === '/change_model') {
       config = await SecurityPrompts.promptChangeModel(config);
       await ConfigManager.saveConfig(config);
       continue;
     }
 
-    if (trimmed === '/config') {
+    if (action === '/config') {
       console.log(chalk.white.bold('\nConfig:'));
       console.log(chalk.gray(JSON.stringify(config, null, 2)) + '\n');
       continue;
     }
 
-    if (trimmed === '/undo') {
+    if (action === '/undo') {
       const spinner = ora(isEn ? 'Rolling back changes...' : 'Đang khôi phục mã nguồn...').start();
       const ok = await GitGuard.rollback();
       if (ok) {
@@ -375,20 +408,20 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
       continue;
     }
 
-    if (trimmed === '/diff') {
+    if (action === '/diff') {
       const diffText = await GitGuard.getDiff();
       console.log(diffText ? chalk.cyan(diffText) : chalk.gray(isEn ? 'No uncommitted changes.\n' : 'Không có thay đổi nào trong git.\n'));
       continue;
     }
 
-    if (trimmed.startsWith('/plan ')) {
-      const task = trimmed.replace('/plan ', '').trim();
+    if (action.startsWith('/plan ')) {
+      const task = action.replace('/plan ', '').trim();
       await runWorkflow(task, { planOnly: true }, config, sessionManager, currentSession);
       continue;
     }
 
     // Normal task execution
-    await runWorkflow(trimmed, { autoAccept: false }, config, sessionManager, currentSession);
+    await runWorkflow(action, { autoAccept: false }, config, sessionManager, currentSession);
   }
 }
 
