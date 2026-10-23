@@ -355,6 +355,18 @@ export class SecurityPrompts {
       newRoleConfig.apiKey = config.roles[targetRole]?.apiKey;
     }
 
+    const effortChoice = await select({
+      message: `Reasoning effort / Thinking budget for ${targetRole}:`,
+      default: config.roles[targetRole]?.reasoningEffort || 'medium',
+      choices: [
+        { name: 'Medium (Balanced speed & depth - recommended)', value: 'medium' },
+        { name: 'High (Maximum reasoning depth & extended thinking)', value: 'high' },
+        { name: 'Low (Fast execution, minimal thinking tokens)', value: 'low' },
+        { name: 'Off / Default (Standard execution without extended thinking)', value: 'off' },
+      ],
+    });
+    newRoleConfig.reasoningEffort = effortChoice as 'low' | 'medium' | 'high' | 'off';
+
     const updatedConfig: AppConfig = {
       ...config,
       roles: {
@@ -363,8 +375,48 @@ export class SecurityPrompts {
       },
     };
 
-    console.log(chalk.green(`\n+ Updated ${targetRole} to ${newRoleConfig.model} (${newRoleConfig.provider})`));
+    console.log(chalk.green(`\n+ Updated ${targetRole} to ${newRoleConfig.model} (${newRoleConfig.provider}, effort: ${newRoleConfig.reasoningEffort})`));
     return updatedConfig;
+  }
+
+  static async promptSelectEffort(config: AppConfig): Promise<AppConfig> {
+    const roleChoice = await select({
+      message: 'Select target role to configure reasoning effort / thinking budget:',
+      choices: [
+        { name: 'All Roles (Architect, Builder, Auditor)', value: 'all' },
+        { name: `Architect (${config.roles.architect.model}) [Current: ${config.roles.architect.reasoningEffort || 'default'}]`, value: 'architect' },
+        { name: `Builder (${config.roles.builder.model}) [Current: ${config.roles.builder.reasoningEffort || 'default'}]`, value: 'builder' },
+        { name: `Auditor (${config.roles.auditor.model}) [Current: ${config.roles.auditor.reasoningEffort || 'default'}]`, value: 'auditor' },
+      ],
+    });
+
+    const effortChoice = await select({
+      message: 'Select reasoning effort level:',
+      choices: [
+        { name: 'High (Maximum reasoning depth & extended thinking budget)', value: 'high' },
+        { name: 'Medium (Balanced reasoning speed & token budget - recommended)', value: 'medium' },
+        { name: 'Low (Fast execution with minimal thinking tokens)', value: 'low' },
+        { name: 'Off / Default (Standard execution without extended thinking)', value: 'off' },
+      ],
+    });
+
+    const effort = effortChoice as 'low' | 'medium' | 'high' | 'off';
+    const newRoles = { ...config.roles };
+
+    if (roleChoice === 'all') {
+      newRoles.architect = { ...newRoles.architect, reasoningEffort: effort };
+      newRoles.builder = { ...newRoles.builder, reasoningEffort: effort };
+      newRoles.auditor = { ...newRoles.auditor, reasoningEffort: effort };
+    } else {
+      const r = roleChoice as 'architect' | 'builder' | 'auditor';
+      newRoles[r] = { ...newRoles[r], reasoningEffort: effort };
+    }
+
+    console.log(chalk.green(`\n+ Updated reasoning effort for ${roleChoice} to: ${effort}`));
+    return {
+      ...config,
+      roles: newRoles,
+    };
   }
 
   static async promptSelectLanguage(config: AppConfig): Promise<AppConfig> {

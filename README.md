@@ -240,6 +240,7 @@ duo monitor
 | :--- | :--- | :--- |
 | `/help` | — | Display command reference and shortcut guide |
 | `/model` | — | Interactively switch models (Claude 5.5, GPT-6, DeepSeek, Local Ollama) |
+| `/effort` | `[low\|med\|high\|off]` | Configure reasoning effort & thinking budget for models |
 | `/cost` | — | Inspect cumulative token consumption and estimated USD costs |
 | `/commit` | `[message]` | Generate conventional git commit from changes and commit to repository |
 | `/add` | `<path>` | Pin specific file or folder directly into agent working memory |

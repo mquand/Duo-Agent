@@ -1,10 +1,13 @@
 export type ProviderType = 'anthropic' | 'google' | 'openai-compatible';
 
+export type ReasoningEffort = 'low' | 'medium' | 'high' | 'off';
+
 export interface RoleConfig {
   provider: ProviderType;
   model: string;
   apiKey?: string;
   baseURL?: string;
+  reasoningEffort?: ReasoningEffort;
 }
 
 export interface AppConfig {

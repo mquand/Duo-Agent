@@ -375,7 +375,8 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
     ? chalk.green(` · ~$${currentSession.estimatedCostUsd.toFixed(3)} (${((currentSession.totalTokens || 0) / 1000).toFixed(1)}k tokens)`)
     : '';
   console.log(chalk.bold.white('Duo Agent') + chalk.gray(` v1.0.0`) + costInfo);
-  console.log(chalk.gray(`${config.roles.architect.model} · ${config.roles.builder.model} · ${config.roles.auditor.model}`));
+  const archEffort = config.roles.architect.reasoningEffort ? ` (${config.roles.architect.reasoningEffort})` : '';
+  console.log(chalk.gray(`${config.roles.architect.model}${archEffort} · ${config.roles.builder.model} · ${config.roles.auditor.model}`));
   console.log(chalk.gray(cwd) + '\n');
 
   const history = await HistoryManager.loadHistory();
@@ -729,6 +730,23 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
       continue;
     }
 
+    if (action.startsWith('/effort')) {
+      const parts = action.split(' ').map((s) => s.trim()).filter(Boolean);
+      const arg = parts[1]?.toLowerCase();
+      if (arg && ['low', 'medium', 'high', 'off'].includes(arg)) {
+        const effort = arg as 'low' | 'medium' | 'high' | 'off';
+        config.roles.architect.reasoningEffort = effort;
+        config.roles.builder.reasoningEffort = effort;
+        config.roles.auditor.reasoningEffort = effort;
+        await ConfigManager.saveConfig(config);
+        console.log(chalk.green(`+ Set reasoning effort to: ${effort}\n`));
+      } else {
+        config = await SecurityPrompts.promptSelectEffort(config);
+        await ConfigManager.saveConfig(config);
+      }
+      continue;
+    }
+
     if (action === '/config') {
       console.log(chalk.white.bold('\nConfig:'));
       console.log(chalk.gray(JSON.stringify(config, null, 2)) + '\n');
@@ -831,11 +849,18 @@ program
   .option('-y, --auto-accept', 'Autonomous execution without plan confirmation', false)
   .option('-d, --dry-run', 'Simulation mode without writing files', false)
   .option('--undo', 'Rollback working tree to initial checkpoint', false)
+  .option('-e, --effort <level>', 'Set reasoning effort: low, medium, high, off')
   .option('-r, --resume [sessionId]', 'Resume previous session (default: latest)')
   .option('--sessions', 'List all saved sessions', false)
   .action(async (promptText, options) => {
     // Load Configuration
     let config = await ConfigManager.loadConfig();
+    if (options.effort && ['low', 'medium', 'high', 'off'].includes(options.effort.toLowerCase())) {
+      const eff = options.effort.toLowerCase() as 'low' | 'medium' | 'high' | 'off';
+      config.roles.architect.reasoningEffort = eff;
+      config.roles.builder.reasoningEffort = eff;
+      config.roles.auditor.reasoningEffort = eff;
+    }
     i18n.setLanguage(config.language || 'vi');
 
     Logger.printBanner(config.theme);

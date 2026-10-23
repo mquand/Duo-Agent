@@ -19,6 +19,7 @@ export interface SlashCommandItem {
 export const SLASH_COMMANDS_LIST: SlashCommandItem[] = [
   { name: '/help', desc: 'Tra cứu lệnh & trợ giúp' },
   { name: '/model', desc: 'Đổi AI model (Claude 5.5, GPT-6...)' },
+  { name: '/effort', desc: 'Chỉnh mức độ suy luận / Thinking Effort (low, medium, high)' },
   { name: '/theme', desc: 'Đổi giao diện màu sắc Terminal' },
   { name: '/lang', desc: 'Đổi ngôn ngữ giao diện (en / vi)' },
   { name: '/cost', desc: 'Thống kê chi phí & tokens của phiên' },
