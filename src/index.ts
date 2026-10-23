@@ -183,10 +183,10 @@ async function runWorkflow(
   try {
     plan = await architect.plan(augmentedPrompt, codeSkeleton, project.ruleContent);
     spinner.succeed(chalk.green(isEn ? 'Architect: Plan ready' : 'Architect: Kế hoạch hoàn tất'));
-    await ActivityLogger.log('architect', `Kế hoạch: ${plan.goal}`, plan.summary);
+    await ActivityLogger.log('architect', isEn ? `Plan: ${plan.goal}` : `Kế hoạch: ${plan.goal}`, plan.summary);
   } catch (err: any) {
     spinner.fail(chalk.red(`${isEn ? 'Planning error:' : 'Lỗi lập kế hoạch:'} ${err.message}`));
-    await ActivityLogger.log('architect', `Lỗi lập kế hoạch: ${err.message}`);
+    await ActivityLogger.log('architect', isEn ? `Planning error: ${err.message}` : `Lỗi lập kế hoạch: ${err.message}`);
     return;
   }
 
@@ -239,7 +239,7 @@ async function runWorkflow(
   const executionResult = await scheduler.executePlan(plan, {
     onStepStart: (step) => {
       stepSpinners[step.id] = ora(`[${step.id}] ${step.title}`).start();
-      ActivityLogger.log('builder', `[${step.id}] Bắt đầu: ${step.title}`, step.instructions);
+      ActivityLogger.log('builder', isEn ? `[${step.id}] Start: ${step.title}` : `[${step.id}] Bắt đầu: ${step.title}`, step.instructions);
     },
     onStepComplete: (step, res) => {
       if (stepSpinners[step.id]) {
@@ -247,13 +247,13 @@ async function runWorkflow(
           chalk.green(`[${step.id}] ${step.title} (${res.modifiedFiles.join(', ')})`)
         );
       }
-      ActivityLogger.log('builder', `[${step.id}] Hoàn thành: ${step.title}`, res.findings);
+      ActivityLogger.log('builder', isEn ? `[${step.id}] Completed: ${step.title}` : `[${step.id}] Hoàn thành: ${step.title}`, res.findings);
     },
     onStepError: (step, err) => {
       if (stepSpinners[step.id]) {
-        stepSpinners[step.id].fail(chalk.red(`[${step.id}] Lỗi: ${err}`));
+        stepSpinners[step.id].fail(chalk.red(`[${step.id}] ${isEn ? 'Error:' : 'Lỗi:'} ${err}`));
       }
-      ActivityLogger.log('builder', `[${step.id}] Lỗi: ${err}`);
+      ActivityLogger.log('builder', `[${step.id}] ${isEn ? 'Error:' : 'Lỗi:'} ${err}`);
     },
   });
 
@@ -308,7 +308,7 @@ async function runWorkflow(
             : `+ Auditor đã hoàn thiện ${reviewResult.polishDiffs.length} chi tiết biên.`
         )
       );
-      await ActivityLogger.log('auditor', `Tự động vá ${reviewResult.polishDiffs.length} chi tiết biên`);
+      await ActivityLogger.log('auditor', isEn ? `Auto-polished ${reviewResult.polishDiffs.length} edge details` : `Tự động vá ${reviewResult.polishDiffs.length} chi tiết biên`);
 
       // Critical ground truth: If Auditor modified code, re-run project test suite!
       if (project.testCommand) {
@@ -317,7 +317,9 @@ async function runWorkflow(
           console.log(chalk.green(isEn ? '✔ Post-polish tests re-verified (PASS)' : '✔ Đã kiểm thử lại sau khi vá (PASS)'));
         } catch (reTestErr: any) {
           reviewResult.approved = false;
-          reviewResult.critique = `Bản vá polish của Auditor gây lỗi hồi quy test: ${(reTestErr.stderr || reTestErr.message).slice(0, 500)}`;
+          reviewResult.critique = isEn
+            ? `Auditor polish patch caused test regressions: ${(reTestErr.stderr || reTestErr.message).slice(0, 500)}`
+            : `Bản vá polish của Auditor gây lỗi hồi quy test: ${(reTestErr.stderr || reTestErr.message).slice(0, 500)}`;
           console.log(chalk.red(isEn ? '✖ Post-polish test failure! Approval revoked.' : '✖ Bản vá của Auditor làm hỏng test! Thu hồi phê duyệt.'));
         }
       }
@@ -332,11 +334,11 @@ async function runWorkflow(
     if (reviewResult.critique) {
       console.log(chalk.gray(`Critique: ${reviewResult.critique}`));
     }
-    await ActivityLogger.log('auditor', 'Auditor: Phê duyệt (Pass)', reviewResult.critique);
+    await ActivityLogger.log('auditor', isEn ? 'Auditor: Approved (Pass)' : 'Auditor: Phê duyệt (Pass)', reviewResult.critique);
   } else {
     auditorSpinner.warn(chalk.yellow(isEn ? 'Auditor advisory:' : 'Auditor lưu ý:'));
     console.log(chalk.gray(`Critique: ${reviewResult.critique}`));
-    await ActivityLogger.log('auditor', 'Auditor: Lưu ý', reviewResult.critique);
+    await ActivityLogger.log('auditor', isEn ? 'Auditor: Advisory note' : 'Auditor: Lưu ý', reviewResult.critique);
   }
 
   if (!project.testCommand) {
@@ -377,7 +379,7 @@ async function runWorkflow(
 
   await ActivityLogger.log(
     'cost',
-    `Phiên hiện tại: ~$${session.estimatedCostUsd.toFixed(4)} USD`,
+    isEn ? `Current session: ~$${session.estimatedCostUsd.toFixed(4)} USD` : `Phiên hiện tại: ~$${session.estimatedCostUsd.toFixed(4)} USD`,
     `${session.totalTokens.toLocaleString()} tokens`
   );
 
@@ -386,17 +388,17 @@ async function runWorkflow(
     builderCalls: stepCount,
     auditorCalls: 1,
     estimatedCostUsd: taskCost,
-  });
+  }, isEn);
 }
 
 // Print formatted list of sessions
-async function printSessionsList(sessionManager: SessionManager): Promise<void> {
+async function printSessionsList(sessionManager: SessionManager, isEn: boolean = false): Promise<void> {
   const sessions = await sessionManager.listSessions();
   const activeId = await sessionManager.getActiveId();
 
-  console.log(chalk.white.bold('\nSessions:'));
+  console.log(chalk.white.bold(isEn ? '\nSessions:' : '\nDanh sách phiên làm việc:'));
   if (sessions.length === 0) {
-    console.log(chalk.gray('  No saved sessions found.'));
+    console.log(chalk.gray(isEn ? '  No saved sessions found.' : '  Chưa có phiên làm việc nào được lưu.'));
     return;
   }
 
@@ -407,7 +409,7 @@ async function printSessionsList(sessionManager: SessionManager): Promise<void> 
     const date = new Date(s.updatedAt).toLocaleString();
     console.log(`${marker}${chalk.cyan(`[${s.id}]`)} ${title}`);
     console.log(
-      chalk.gray(`     ${s.records.length} tasks • Updated: ${date}`)
+      chalk.gray(`     ${s.records.length} ${isEn ? 'tasks • Updated:' : 'tasks • Cập nhật:'} ${date}`)
     );
   }
   console.log();
@@ -532,7 +534,7 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
       }
 
       if (chosen === '/switch') {
-        await printSessionsList(sessionManager);
+        await printSessionsList(sessionManager, isEn);
         const switchTarget = await promptUser(chalk.bold.cyan(isEn ? 'Switch to session ID or name > ' : 'Nhập ID hoặc tên phiên cần chuyển > '));
         if (switchTarget.trim()) {
           action = `/switch ${switchTarget.trim()}`;
@@ -738,7 +740,7 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
     }
 
     if (action === '/sessions') {
-      await printSessionsList(sessionManager);
+      await printSessionsList(sessionManager, isEn);
       continue;
     }
 
@@ -761,13 +763,13 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
     }
 
     if (action === '/session') {
-      console.log(chalk.white.bold(`\nSession: ${currentSession.title}`));
-      console.log(chalk.gray(`- ID:        ${currentSession.id}`));
-      console.log(chalk.gray(`- Created:   ${new Date(currentSession.createdAt).toLocaleString()}`));
-      console.log(chalk.gray(`- Updated:   ${new Date(currentSession.updatedAt).toLocaleString()}`));
-      console.log(chalk.gray(`- Tasks:     ${currentSession.records.length}`));
+      console.log(chalk.white.bold(isEn ? `\nSession: ${currentSession.title}` : `\nThông tin phiên: ${currentSession.title}`));
+      console.log(chalk.gray(`- ${isEn ? 'ID:' : 'Mã:'}        ${currentSession.id}`));
+      console.log(chalk.gray(`- ${isEn ? 'Created:' : 'Khởi tạo:'}   ${new Date(currentSession.createdAt).toLocaleString()}`));
+      console.log(chalk.gray(`- ${isEn ? 'Updated:' : 'Cập nhật:'}   ${new Date(currentSession.updatedAt).toLocaleString()}`));
+      console.log(chalk.gray(`- ${isEn ? 'Tasks:' : 'Nhiệm vụ:'}     ${currentSession.records.length}`));
       if (currentSession.records.length > 0) {
-        console.log(chalk.gray('\nCompleted tasks:'));
+        console.log(chalk.gray(isEn ? '\nCompleted tasks:' : '\nCác task đã hoàn tất:'));
         currentSession.records.forEach((r, idx) => {
           console.log(chalk.gray(`  ${idx + 1}. ${r.goal} (${r.modifiedFiles.join(', ')})`));
         });
@@ -987,7 +989,7 @@ program
 
     // Handle --sessions command
     if (options.sessions) {
-      await printSessionsList(sessionManager);
+      await printSessionsList(sessionManager, config.language === 'en');
       return;
     }
 

@@ -88,7 +88,7 @@ export class SessionManager {
         await this.setActiveId(matched.id);
         return matched;
       }
-      throw new Error(`Không tìm thấy phiên làm việc với ID hoặc tên: "${id}"`);
+      throw new Error(`Session not found with ID or title: "${id}"`);
     }
 
     const session: SessionData = await fs.readJson(sessionFile);

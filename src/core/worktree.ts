@@ -29,7 +29,7 @@ export class WorktreeManager {
   async create(taskId: string, baseCommit: string = 'HEAD'): Promise<WorktreeInfo> {
     const isGit = await this.isSupported();
     if (!isGit) {
-      throw new Error('Git worktree yêu cầu thư mục hiện tại phải là một Git repository.');
+      throw new Error('Git worktree requires current workspace to be a Git repository.');
     }
 
     await fs.ensureDir(this.worktreesDir);

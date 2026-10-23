@@ -33,7 +33,7 @@ test('CodeGraph - scans project files and filters out ignored directories', asyn
 
   // Test skeleton generation
   const skeleton = await CodeGraph.generateSkeleton(tmpDir);
-  assert.match(skeleton, /CẤU TRÚC CODEBASE/);
+  assert.match(skeleton, /CODEBASE STRUCTURE/);
   assert.match(skeleton, /src\/index\.ts/);
 
   await fs.remove(tmpDir);

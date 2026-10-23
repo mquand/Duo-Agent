@@ -59,7 +59,7 @@ export class DAGScheduler {
           const pendingRemaining = steps.filter((s) => s.status === 'pending');
           for (const s of pendingRemaining) {
             s.status = 'blocked';
-            s.error = 'Bị chặn (Deadlock hoặc phụ thuộc không thể đáp ứng)';
+            s.error = 'Blocked (Deadlock or unmet dependencies)';
             callbacks?.onStepError?.(s, s.error);
           }
           return {
@@ -104,14 +104,14 @@ export class DAGScheduler {
               error: result.error,
               completedAt: new Date().toISOString(),
             });
-            callbacks?.onStepError?.(step, result.error || 'Lỗi không xác định');
+            callbacks?.onStepError?.(step, result.error || 'Unknown error');
 
             // Cascade: Mark all dependent pending tasks as BLOCKED
             const markBlocked = (failedId: string) => {
               for (const s of steps) {
                 if (s.status === 'pending' && s.depends_on.includes(failedId)) {
                   s.status = 'blocked';
-                  s.error = `Bị chặn do task phụ thuộc [${failedId}] thất bại`;
+                  s.error = `Blocked because prerequisite task [${failedId}] failed`;
                   callbacks?.onStepError?.(s, s.error);
                   markBlocked(s.id);
                 }

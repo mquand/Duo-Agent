@@ -35,34 +35,34 @@ export class BuilderAgent {
     let filesContext = '';
     for (const file of step.target_files) {
       const sliced = await ContextSlicer.sliceFile(file, step.instructions, cwd);
-      filesContext += `\n--- FILE: ${file} (Tổng số dòng: ${sliced.totalLines}) ---\n${sliced.content}\n`;
+      filesContext += `\n--- FILE: ${file} (Total lines: ${sliced.totalLines}) ---\n${sliced.content}\n`;
     }
 
-    const systemPrompt = `Bạn là Senior Software Engineer thực thi (Builder). 
-Nhiệm vụ: Sửa mã nguồn theo yêu cầu một cách TỐI THIỂU, CHUẨN XÁC, tuân thủ PONYTAIL:
-- Không viết dài dòng, không tạo hàm wrapper vô nghĩa.
-- Chỉ sửa đúng các dòng cần sửa.
-- Trả về các khối SEARCH/REPLACE theo đúng chuẩn:
+    const systemPrompt = `You are a Senior Implementation Engineer (Builder).
+Objective: Modify source code minimally, surgically, and accurately according to the PONYTAIL PHILOSOPHY:
+- Do not write unnecessary boilerplate or wrapper functions.
+- Modify ONLY the specific lines required.
+- Emit surgical SEARCH/REPLACE blocks following this EXACT format:
 
-### File: đường_dẫn_file
+### File: path/to/file.ext
 <<<<<<< SEARCH
-// mã cũ chính xác từng ký tự trong file
+// exact original code characters to be replaced
 =======
-// mã mới thay thế
+// updated replacement code
 >>>>>>>
 
-Nếu tạo file mới hoàn toàn, dùng khối:
-### File: đường_dẫn_file
+If creating a brand new file, use:
+### File: path/to/new_file.ext
 <<<<<<< SEARCH
 =======
-// toàn bộ nội dung file mới
+// entire initial content of the new file
 >>>>>>>`;
 
-    let userPrompt = `NHIỆM VỤ: ${step.instructions}\n`;
+    let userPrompt = `TASK INSTRUCTIONS: ${step.instructions}\n`;
     if (blackboardSummary) {
       userPrompt += `\n${blackboardSummary}\n`;
     }
-    userPrompt += `\nCÁC FILE MỤC TIÊU:${filesContext}\n\nHãy xuất các khối SEARCH/REPLACE:`;
+    userPrompt += `\nTARGET FILE CONTEXT:${filesContext}\n\nEmit the surgical SEARCH/REPLACE blocks to complete the task:`;
 
     // 2. Generate and apply diff
     let attempt = 0;
@@ -73,7 +73,7 @@ Nếu tạo file mới hoàn toàn, dùng khối:
       attempt++;
       let currentPrompt = userPrompt;
       if (lastError) {
-        currentPrompt += `\n\n⚠️ LẦN THỰC THI TRƯỚC BỊ LỖI:\n${lastError}\nHãy tạo lại khối SEARCH/REPLACE để khắc phục lỗi này!`;
+        currentPrompt += `\n\n⚠️ PREVIOUS ATTEMPT FAILED WITH ERROR:\n${lastError}\nAnalyze the root cause and provide corrected SEARCH/REPLACE blocks!`;
       }
 
       const response = await this.provider.generate([
@@ -83,7 +83,7 @@ Nếu tạo file mới hoàn toàn, dùng khối:
 
       const blocks = DiffEngine.parseDiffBlocks(response.text, step.target_files[0]);
       if (blocks.length === 0) {
-        lastError = 'Không trích xuất được khối SEARCH/REPLACE nào từ câu trả lời của AI.';
+        lastError = 'No valid SEARCH/REPLACE blocks extracted from model response.';
         continue;
       }
 
@@ -92,12 +92,12 @@ Nếu tạo file mới hoàn toàn, dùng khối:
         const res = await DiffEngine.applyDiffBlock(block, cwd);
         if (!res.success) {
           applyFailed = true;
-          lastError = res.error || 'Áp dụng diff thất bại.';
+          lastError = res.error || 'Diff application failed.';
           break;
         }
         if (res.patchPreview) {
           patchPreviews.push(res.patchPreview);
-          await ActivityLogger.log('diff', `Đã sửa đổi: ${block.file}`, res.patchPreview);
+          await ActivityLogger.log('diff', `Modified: ${block.file}`, res.patchPreview);
         }
         if (!modifiedFiles.includes(block.file)) modifiedFiles.push(block.file);
       }
@@ -107,27 +107,27 @@ Nếu tạo file mới hoàn toàn, dùng khối:
       // 3. Verification Command (Self-Healing Loop)
       if (step.verification_cmd) {
         try {
-          await ActivityLogger.log('test', `Đang chạy: ${step.verification_cmd}`);
+          await ActivityLogger.log('test', `Running: ${step.verification_cmd}`);
           await execAsync(step.verification_cmd, { cwd });
-          await ActivityLogger.log('test', `Kiểm tra thành công (PASS): ${step.verification_cmd}`);
+          await ActivityLogger.log('test', `Test verified (PASS): ${step.verification_cmd}`);
           return {
             success: true,
             modifiedFiles,
-            findings: `Đã sửa thành công các file: ${modifiedFiles.join(', ')} và vượt qua lệnh kiểm tra (${step.verification_cmd}).`,
+            findings: `Successfully modified ${modifiedFiles.join(', ')} and verified with ${step.verification_cmd}.`,
             patchPreviews,
           };
         } catch (cmdError: any) {
           const stderr = cmdError.stderr || cmdError.stdout || cmdError.message;
           const truncatedLog = stderr.split('\n').slice(-30).join('\n');
-          lastError = `Lệnh kiểm tra [${step.verification_cmd}] thất bại:\n${truncatedLog}`;
-          await ActivityLogger.log('test', `Kiểm tra thất bại (FAIL): ${step.verification_cmd}`, truncatedLog);
+          lastError = `Verification command [${step.verification_cmd}] failed:\n${truncatedLog}`;
+          await ActivityLogger.log('test', `Test failed (FAIL): ${step.verification_cmd}`, truncatedLog);
           continue; // Self-heal on next iteration
         }
       } else {
         return {
           success: true,
           modifiedFiles,
-          findings: `Đã áp dụng các thay đổi vào: ${modifiedFiles.join(', ')}.`,
+          findings: `Successfully applied changes to: ${modifiedFiles.join(', ')}.`,
           patchPreviews,
         };
       }
@@ -136,7 +136,7 @@ Nếu tạo file mới hoàn toàn, dùng khối:
     return {
       success: false,
       modifiedFiles,
-      error: `Thất bại sau ${maxAttempts} lần thử. Lỗi cuối cùng: ${lastError}`,
+      error: `Failed after ${maxAttempts} attempts. Last error: ${lastError}`,
       patchPreviews,
     };
   }

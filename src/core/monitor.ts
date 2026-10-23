@@ -101,7 +101,7 @@ export class ActivityMonitor {
 
     process.on('SIGINT', () => {
       clearInterval(checkInterval);
-      console.log(chalk.gray('\nĐã dừng Duo Monitor.'));
+      console.log(chalk.gray('\nDuo Monitor stopped.'));
       process.exit(0);
     });
   }

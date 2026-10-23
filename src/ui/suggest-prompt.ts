@@ -40,6 +40,30 @@ export const SLASH_COMMANDS_LIST: SlashCommandItem[] = [
   { name: '/exit', desc: 'Thoát chương trình' },
 ];
 
+export const SLASH_COMMANDS_DESC_EN: Record<string, string> = {
+  '/help': 'Display command reference',
+  '/model': 'Switch AI models (Claude 5.5, GPT-6...)',
+  '/effort': 'Set reasoning effort / thinking budget',
+  '/benchmark': 'Run empirical benchmark (Sandwich vs Monolith)',
+  '/theme': 'Select terminal color theme',
+  '/lang': 'Switch interface language (en / vi)',
+  '/cost': 'Display session token usage & cost',
+  '/commit': 'Auto-generate commit message & git commit',
+  '/add': 'Pin file or folder into agent context',
+  '/paste': 'Multi-line paste mode for logs/specs',
+  '/compact': 'Summarize & compress session task history',
+  '/sessions': 'List all saved sessions',
+  '/new': 'Create a clean session',
+  '/switch': 'Switch to another session',
+  '/session': 'View active session details',
+  '/plan': 'Generate architectural plan only',
+  '/diff': 'Preview uncommitted git changes',
+  '/undo': 'Rollback working tree to checkpoint',
+  '/config': 'Display active configuration',
+  '/clear': 'Clear terminal screen',
+  '/exit': 'Exit Duo shell',
+};
+
 export interface SuggestPromptConfig {
   message: string;
   isEn?: boolean;
@@ -204,7 +228,8 @@ export const promptWithSuggestions = createPrompt<string, SuggestPromptConfig>((
       const isSelected = idx === (selectedIndex % matches.length);
       const pointer = isSelected ? chalk.cyan('› ') : '  ';
       const cmdFormatted = isSelected ? chalk.bold.cyan(m.name) : chalk.white(m.name);
-      const descFormatted = chalk.gray(m.desc);
+      const descText = config.isEn ? (SLASH_COMMANDS_DESC_EN[m.name] || m.desc) : m.desc;
+      const descFormatted = chalk.gray(descText);
       return `${pointer}${cmdFormatted.padEnd(16)} ${descFormatted}`;
     }).join('\n');
     return [promptLine, '\n' + renderedList];

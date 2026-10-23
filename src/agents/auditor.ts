@@ -19,47 +19,47 @@ export class AuditorAgent {
     if (!gitDiff || gitDiff.trim().length === 0) {
       return {
         approved: true,
-        critique: 'Không có thay đổi mã nguồn nào được tạo ra.',
+        critique: 'No codebase modifications detected.',
       };
     }
 
-    const systemPrompt = `Bạn là Chief Code Auditor & Security Lead tối cao.
-Nhiệm vụ: Tổng duyệt toàn bộ Git Diff cuối cùng sau khi các Builder đã sửa xong:
-1. ĐỘ CHÍNH XÁC: Có đáp ứng 100% mục tiêu ban đầu không?
-2. THỰC TẾ KIỂM THỬ: Đối chiếu với kết quả chạy test thực tế (nếu có). Nếu test fail, phải chỉ ra nguyên nhân hoặc cung cấp polishDiffs để sửa.
-3. EDGE CASES: Có sót kiểm tra nil/null, mảng rỗng, dữ liệu sai định dạng không?
-4. REGRESSION & SECURITY: Có nguy cơ làm hỏng luồng code khác hoặc dính lỗi bảo mật không?
-5. PONYTAIL: Code có bị rườm rà, thừa thãi không?
+    const systemPrompt = `You are the Chief Code Auditor & Security Lead.
+Your responsibility is to thoroughly review the final Git Diff after all Builders have completed their tasks:
+1. ACCURACY: Does the diff fulfill 100% of the initial objective without missing logic?
+2. GROUND TRUTH VERIFICATION: Verify against real test execution output (if provided). If tests failed, pinpoint root causes or provide polishDiffs to fix them.
+3. EDGE CASES: Check for nil/null dereferences, empty collections, off-by-one errors, or malformed inputs.
+4. REGRESSIONS & SECURITY: Ensure existing functionality is not broken and no security vulnerabilities (injection, auth bypass, secret leaks) are introduced.
+5. PONYTAIL PHILOSOPHY: Flag unnecessary abstractions, dead code, or bloated modifications.
 
-QUYỀN HẠN ĐẶC BIỆT (LAST-MILE POLISH):
-Nếu bạn phát hiện lỗi nhỏ hoặc thiếu sót biên, bạn có quyền tự tay cung cấp "polishDiffs" (khối SEARCH/REPLACE) để vá lỗi ngay lập tức, không cần trả về cho Builder!
+SPECIAL AUTHORITY (LAST-MILE POLISH):
+If you identify minor bugs, regressions, or missing edge handling, you are authorized to provide "polishDiffs" (SEARCH/REPLACE blocks) to surgically patch the code immediately without bouncing back to Builders.
 
-ĐỊNH DẠNG ĐẦU RA BẮT BUỘC (Chỉ xuất JSON thuần):
+MANDATORY OUTPUT FORMAT (Raw JSON only):
 {
-  "approved": true hoặc false,
-  "critique": "Đánh giá chi tiết của bạn về chất lượng mã nguồn (2-4 câu súc tích)",
+  "approved": true or false,
+  "critique": "Concise architectural critique (2-4 sentences)",
   "polishDiffs": [
     {
-      "file": "đường_dẫn_file",
-      "searchBlock": "đoạn code cần sửa thêm",
-      "replaceBlock": "đoạn code đã được bạn tối ưu hoàn hảo"
+      "file": "path/to/file.ext",
+      "searchBlock": "exact original code to replace",
+      "replaceBlock": "optimal polished code"
     }
   ]
 }`;
 
-    let userPrompt = `MỤC TIÊU BAN ĐẦU: "${goal}"\n\n`;
+    let userPrompt = `ORIGINAL GOAL: "${goal}"\n\n`;
     if (projectRules) {
-      userPrompt += `QUY ƯỚC DỰ ÁN:\n${projectRules}\n\n`;
+      userPrompt += `PROJECT RULES:\n${projectRules}\n\n`;
     }
 
     if (testResults) {
-      userPrompt += `KẾT QUẢ CHẠY TEST THỰC TẾ TRÊN MÁY (GROUND TRUTH):\nTrạng thái: ${testResults.passed ? 'TẤT CẢ TEST ĐỀU PASS' : 'CÓ TEST BỊ FAIL'}\nLogs:\n${testResults.output.slice(0, 4000)}\n\n`;
+      userPrompt += `LOCAL TEST RUNNER RESULTS (GROUND TRUTH):\nStatus: ${testResults.passed ? 'ALL TESTS PASSED' : 'TESTS FAILED'}\nOutput Logs:\n${testResults.output.slice(0, 4000)}\n\n`;
       if (!testResults.passed) {
-        userPrompt += `CHÚ Ý: Lệnh test thực tế bị thất bại! Bạn KHÔNG được phê duyệt ("approved": false) trừ khi bạn tự sửa được triệt để qua "polishDiffs"!\n\n`;
+        userPrompt += `CRITICAL: The local test suite failed! You MUST NOT approve ("approved": false) unless you can completely fix the regressions via "polishDiffs"!\n\n`;
       }
     }
 
-    userPrompt += `TOÀN BỘ GIT DIFF:\n\`\`\`diff\n${gitDiff.slice(0, 15000)}\n\`\`\`\n\nHãy tổng duyệt nghiêm ngặt và xuất JSON kết quả!`;
+    userPrompt += `CUMULATIVE GIT DIFF:\n\`\`\`diff\n${gitDiff.slice(0, 15000)}\n\`\`\`\n\nPerform rigorous audit and output the JSON evaluation:`;
 
     const response = await this.provider.generate(
       [
@@ -85,7 +85,7 @@ Nếu bạn phát hiện lỗi nhỏ hoặc thiếu sót biên, bạn có quyề
     } catch {
       return {
         approved: true,
-        critique: response.text || 'Auditor đã phê duyệt.',
+        critique: response.text || 'Auditor approved.',
       };
     }
   }

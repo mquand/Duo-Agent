@@ -44,11 +44,11 @@ export class CodeGraph {
 
   static async generateSkeleton(cwd: string = process.cwd(), maxChars = 8000): Promise<string> {
     const files = await this.scanFiles(cwd, 150);
-    let skeleton = '## CẤU TRÚC CODEBASE & CHỮ KÝ HÀM (CODE SKELETON):\n\n';
+    let skeleton = '## CODEBASE STRUCTURE & FUNCTION SIGNATURES (CODE SKELETON):\n\n';
 
     for (const relPath of files) {
       if (skeleton.length >= maxChars) {
-        skeleton += '\n... [Đã cắt bớt để tối ưu token]\n';
+        skeleton += '\n... [Truncated for token optimization]\n';
         break;
       }
 

@@ -46,9 +46,9 @@ export class Blackboard {
     const completed = Object.values(this.state.records).filter((r) => r.status === 'completed');
     if (completed.length === 0) return '';
 
-    let summary = '### THÔNG TIN TỪ CÁC BƯỚC ĐÃ HOÀN THÀNH:\n';
+    let summary = '### COMPLETED STEPS CONTEXT (SHARED MEMORY):\n';
     for (const r of completed) {
-      summary += `- Bước ${r.stepId}: Đã sửa [${r.modifiedFiles.join(', ')}]. ${r.findings || ''}\n`;
+      summary += `- Step ${r.stepId}: Modified [${r.modifiedFiles.join(', ')}]. ${r.findings || ''}\n`;
     }
     return summary.trim();
   }

@@ -34,14 +34,14 @@ export class IntegrationManager {
         return {
           success: false,
           conflict: true,
-          error: `Xung đột mã nguồn (Merge Conflict) khi tích hợp nhánh [${branch}]:\n${errorOutput.slice(0, 500)}`,
+          error: `Merge conflict detected when integrating branch [${branch}]:\n${errorOutput.slice(0, 500)}`,
         };
       }
 
       return {
         success: false,
         conflict: false,
-        error: `Không thể tích hợp nhánh [${branch}]: ${errorOutput.slice(0, 300)}`,
+        error: `Failed to integrate branch [${branch}]: ${errorOutput.slice(0, 300)}`,
       };
     }
   }

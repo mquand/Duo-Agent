@@ -47,7 +47,7 @@ export class DiffEngine {
         success: true,
         file: block.file,
         appliedCount: 1,
-        patchPreview: chalk.green(`+ [Tạo mới file ${block.file}]:\n${block.replaceBlock.slice(0, 300)}`),
+        patchPreview: chalk.green(`+ [Created new file ${block.file}]:\n${block.replaceBlock.slice(0, 300)}`),
       };
     }
 
@@ -67,7 +67,7 @@ export class DiffEngine {
           success: false,
           file: block.file,
           appliedCount: 0,
-          error: `Không tìm thấy khối SEARCH trong file ${block.file}. Vui lòng thử lại.`,
+          error: `SEARCH block not found in file ${block.file}. Please verify the target code.`,
         };
       }
     }

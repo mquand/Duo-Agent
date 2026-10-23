@@ -21,7 +21,7 @@ export class ContextSlicer {
         filePath,
         isSliced: false,
         totalLines: 0,
-        content: `// [FILE CHƯA TỒN TẠI - CẦN TẠO MỚI]`,
+        content: `// [NEW FILE - DOES NOT EXIST YET]`,
       };
     }
 
@@ -55,7 +55,7 @@ export class ContextSlicer {
         totalLines,
         startLine: 1,
         endLine: 250,
-        content: `// [FILE LỚN (${totalLines} DÒNG) - ĐÃ CẮT LÁT TỪ DÒNG 1 ĐẾN 250]\n${sliced}\n// ... [Còn lại ${totalLines - 250} dòng phía sau]`,
+        content: `// [LARGE FILE (${totalLines} LINES) - SLICED LINES 1 TO 250]\n${sliced}\n// ... [${totalLines - 250} remaining lines omitted]`,
       };
     }
 
@@ -70,7 +70,7 @@ export class ContextSlicer {
       totalLines,
       startLine: start + 1,
       endLine: end,
-      content: `// [FILE LỚN (${totalLines} DÒNG) - ĐÃ CẮT LÁT XUNG QUANH '${targetSymbol}' TỪ DÒNG ${start + 1} ĐẾN ${end}]\n${sliced}`,
+      content: `// [LARGE FILE (${totalLines} LINES) - SLICED AROUND '${targetSymbol}' FROM LINE ${start + 1} TO ${end}]\n${sliced}`,
     };
   }
 

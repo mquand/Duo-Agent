@@ -34,19 +34,22 @@ export class Logger {
     console.log(chalk.gray(`- ${msg}`));
   }
 
-  static printCostReport(stats: {
-    architectCalls: number;
-    builderCalls: number;
-    auditorCalls: number;
-    estimatedCostUsd: number;
-  }): void {
+  static printCostReport(
+    stats: {
+      architectCalls: number;
+      builderCalls: number;
+      auditorCalls: number;
+      estimatedCostUsd: number;
+    },
+    isEn: boolean = false
+  ): void {
     console.log(chalk.gray('\n' + '─'.repeat(60)));
-    console.log(chalk.white.bold('Summary'));
-    console.log(chalk.gray(`- Architect calls (Planning):    ${stats.architectCalls}`));
-    console.log(chalk.gray(`- Builder calls (Execution):     ${stats.builderCalls}`));
-    console.log(chalk.gray(`- Auditor calls (Review):        ${stats.auditorCalls}`));
-    console.log(chalk.green(`- Estimated cost:                ~$${stats.estimatedCostUsd.toFixed(4)}`));
-    console.log(chalk.gray(`- Estimated savings:             ~85% - 90%`));
+    console.log(chalk.white.bold(isEn ? 'Summary' : 'Tổng kết'));
+    console.log(chalk.gray(`- ${isEn ? 'Architect calls (Planning)' : 'Architect (Lập kế hoạch)'}:    ${stats.architectCalls}`));
+    console.log(chalk.gray(`- ${isEn ? 'Builder calls (Execution)' : 'Builder (Thực thi code)'}:     ${stats.builderCalls}`));
+    console.log(chalk.gray(`- ${isEn ? 'Auditor calls (Review)' : 'Auditor (Tổng duyệt)'}:        ${stats.auditorCalls}`));
+    console.log(chalk.green(`- ${isEn ? 'Estimated cost' : 'Chi phí ước tính'}:                ~$${stats.estimatedCostUsd.toFixed(4)} USD`));
+    console.log(chalk.gray(`- ${isEn ? 'Estimated savings' : 'Mức tiết kiệm ước tính'}:             ~85% - 90%`));
     console.log(chalk.gray('─'.repeat(60) + '\n'));
   }
 }
