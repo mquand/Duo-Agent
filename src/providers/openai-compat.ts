@@ -64,17 +64,42 @@ export class OpenAICompatProvider implements LLMProvider {
         outputTokens: response.usage?.completion_tokens,
       };
     } catch (err: any) {
-      const errMsg = err.message || String(err);
-      if (err.code === 'ECONNREFUSED' || errMsg.includes('ECONNREFUSED') || errMsg.includes('fetch failed')) {
-        throw new Error(
-          `Cannot connect to local LLM server at ${this.client.baseURL || 'http://localhost:11434'}. Please ensure Ollama is running ('ollama serve').`
-        );
+      const errMsg = (err.message || String(err)).toLowerCase();
+      const isConnError =
+        err.name === 'APIConnectionError' ||
+        errMsg.includes('connection error') ||
+        errMsg.includes('econnrefused') ||
+        errMsg.includes('fetch failed') ||
+        err.code === 'ECONNREFUSED' ||
+        err.cause?.code === 'ECONNREFUSED';
+
+      if (isConnError) {
+        const baseURL = this.client.baseURL || 'http://localhost:11434/v1';
+        const isLocal = baseURL.includes('localhost') || baseURL.includes('127.0.0.1');
+        if (isLocal) {
+          throw new Error(
+            `Cannot connect to local Ollama server at ${baseURL}.\n  -> Ensure Ollama is running ('ollama serve') and model '${this.model}' is installed ('ollama pull ${this.model}').`
+          );
+        } else {
+          throw new Error(
+            `Network connection failed while reaching ${baseURL}. Please verify your internet connection or proxy settings.`
+          );
+        }
       }
       if (err.status === 404 || errMsg.includes('not found')) {
-        throw new Error(`Model '${this.model}' was not found. If using Ollama, run: 'ollama pull ${this.model}'`);
+        throw new Error(
+          `Model '${this.model}' not found on server.\n  -> If using Ollama, download it via: 'ollama pull ${this.model}'.`
+        );
       }
-      if (err.status === 401 || errMsg.includes('401') || errMsg.includes('Incorrect API key')) {
-        throw new Error(`Authentication error (401): Invalid API key for model '${this.model}'. Use /model to update.`);
+      if (err.status === 401 || errMsg.includes('401') || errMsg.includes('incorrect api key') || errMsg.includes('invalid x-api-key')) {
+        throw new Error(
+          `Authentication error (401): Invalid API key for model '${this.model}'.\n  -> Update via /model or set in ~/.duo/.env.`
+        );
+      }
+      if (err.status === 429 || errMsg.includes('429') || errMsg.includes('rate limit') || errMsg.includes('quota')) {
+        throw new Error(
+          `Rate limit or quota exceeded (429) for model '${this.model}'.\n  -> Check your account billing balance or switch models with /model.`
+        );
       }
       throw err;
     }

@@ -18,7 +18,27 @@ export class CodeGraph {
     '**/package-lock.json',
   ];
 
-  static async scanFiles(cwd: string = process.cwd(), limit = 200): Promise<string[]> {
+  private static filesCache: Map<string, { files: string[]; timestamp: number }> = new Map();
+  private static skeletonCache: Map<string, { skeleton: string; timestamp: number }> = new Map();
+  private static readonly CACHE_TTL_MS = 60_000; // 60 seconds TTL
+
+  static invalidateCache(cwd?: string): void {
+    if (cwd) {
+      this.filesCache.delete(cwd);
+      this.skeletonCache.delete(cwd);
+    } else {
+      this.filesCache.clear();
+      this.skeletonCache.clear();
+    }
+  }
+
+  static async scanFiles(cwd: string = process.cwd(), limit = 200, forceRefresh = false): Promise<string[]> {
+    const now = Date.now();
+    const cached = this.filesCache.get(cwd);
+    if (!forceRefresh && cached && now - cached.timestamp < this.CACHE_TTL_MS) {
+      return cached.files.slice(0, limit);
+    }
+
     const ignorePatterns = [...this.IGNORE_PATTERNS];
     const duoIgnorePath = path.join(cwd, '.duoignore');
     if (await fs.pathExists(duoIgnorePath)) {
@@ -39,11 +59,19 @@ export class CodeGraph {
       ignore: ignorePatterns,
       dot: false,
     });
+
+    this.filesCache.set(cwd, { files, timestamp: now });
     return files.slice(0, limit);
   }
 
-  static async generateSkeleton(cwd: string = process.cwd(), maxChars = 8000): Promise<string> {
-    const files = await this.scanFiles(cwd, 150);
+  static async generateSkeleton(cwd: string = process.cwd(), maxChars = 8000, forceRefresh = false): Promise<string> {
+    const now = Date.now();
+    const cached = this.skeletonCache.get(cwd);
+    if (!forceRefresh && cached && now - cached.timestamp < this.CACHE_TTL_MS) {
+      return cached.skeleton;
+    }
+
+    const files = await this.scanFiles(cwd, 150, forceRefresh);
     let skeleton = '## CODEBASE STRUCTURE & FUNCTION SIGNATURES (CODE SKELETON):\n\n';
 
     for (const relPath of files) {
@@ -71,7 +99,9 @@ export class CodeGraph {
       }
     }
 
-    return skeleton.trim();
+    const finalSkeleton = skeleton.trim();
+    this.skeletonCache.set(cwd, { skeleton: finalSkeleton, timestamp: now });
+    return finalSkeleton;
   }
 
   private static extractSignatures(content: string, ext: string): string[] {

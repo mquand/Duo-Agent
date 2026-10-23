@@ -387,6 +387,9 @@ async function runWorkflow(
     }
   }
 
+  // Invalidate CodeGraph cache after code modifications
+  CodeGraph.invalidateCache(process.cwd());
+
   // 10. Record Task to Current Session
   await sessionManager.recordTask(
     session,
@@ -486,6 +489,21 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
 
     let action = userInput.trim();
     if (!action) continue;
+
+    const lowerAction = action.toLowerCase();
+    if (
+      lowerAction === 'exit' ||
+      lowerAction === 'quit' ||
+      lowerAction === ':q' ||
+      lowerAction === 'q' ||
+      lowerAction === 'bye' ||
+      lowerAction === '/exit' ||
+      lowerAction === '/quit' ||
+      lowerAction === '/ex'
+    ) {
+      console.log(chalk.gray(isEn ? 'Goodbye!' : 'Tạm biệt!'));
+      break;
+    }
 
     // Run direct system shell command with ! prefix
     if (action.startsWith('!')) {
@@ -892,6 +910,7 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
     if (action === '/undo') {
       const spinner = ora(isEn ? 'Rolling back changes...' : 'Đang khôi phục mã nguồn...').start();
       const ok = await GitGuard.rollback();
+      CodeGraph.invalidateCache(process.cwd());
       if (ok) {
         spinner.succeed(chalk.green(isEn ? 'Rollback completed\n' : 'Đã khôi phục thành công!\n'));
       } else {

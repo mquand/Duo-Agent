@@ -21,7 +21,15 @@ export class HistoryManager {
 
   static async append(line: string): Promise<void> {
     const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('/')) return; // Only store actual task prompts in history
+    const lower = trimmed.toLowerCase();
+    // Do not store empty, slash commands, or common exit/control commands
+    if (
+      !trimmed ||
+      trimmed.startsWith('/') ||
+      ['exit', 'quit', ':q', 'q', 'bye', 'clear', 'cls'].includes(lower)
+    ) {
+      return;
+    }
 
     try {
       await fs.ensureDir(path.dirname(this.historyFile));
