@@ -6,8 +6,8 @@
 </p>
 
 <p align="center">
-  <a href="#-english">English</a> •
-  <a href="#-tiếng-việt">Tiếng Việt</a>
+  <a href="#english">English</a> •
+  <a href="#vietnamese">Vietnamese</a>
 </p>
 
 ```ascii
@@ -24,8 +24,8 @@
 
 ---
 
-<a name="-english"></a>
-## 🌐 English
+<a name="english"></a>
+## English
 
 Duo-Agent is a developer-centric CLI tool designed to orchestrate AI models using a structured **Sandwich Architecture (Architect – Builder – Auditor)**:
 
@@ -109,7 +109,8 @@ duo [Default] > /new auth-flow          # Create and switch to a fresh, clean se
 duo [auth-flow] > /switch db-pool       # Switch back to an existing session
 duo [db-pool] > /session                # View current session progress & completed tasks
 duo [db-pool] > /model                  # Interactively switch models for any role
-duo [db-pool] > /lang                   # Switch interface language (English / Tiếng Việt)
+duo [db-pool] > /theme                  # Switch terminal color theme (Cyber, Dracula, Nord...)
+duo [db-pool] > /lang                   # Switch interface language (English / Vietnamese)
 duo [db-pool] > /help                   # View full command reference and guide
 duo [db-pool] > /plan Add caching layer # Generate plan without editing files
 duo [db-pool] > /diff                   # View current git diff
@@ -164,8 +165,8 @@ duo --undo
 
 <br>
 
-<a name="-tiếng-việt"></a>
-## 🇻🇳 Tiếng Việt
+<a name="vietnamese"></a>
+## Vietnamese
 
 Duo-Agent là công cụ CLI mã nguồn mở điều phối các mô hình AI theo kiến trúc **Bánh mì kẹp (Sandwich Architecture)**:
 

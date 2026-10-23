@@ -1,6 +1,7 @@
 import { confirm, select, input, password } from '@inquirer/prompts';
 import chalk from 'chalk';
 import { Plan, AppConfig, RoleConfig, ProviderType } from '../types/index.js';
+import { THEMES } from './theme.js';
 
 const DANGEROUS_PATTERNS = [
   /rm\s+-rf\s+[/~]/i,
@@ -370,11 +371,11 @@ export class SecurityPrompts {
 
   static async promptSelectLanguage(config: AppConfig): Promise<AppConfig> {
     const langChoice = await select({
-      message: 'Chọn ngôn ngữ giao diện (Select interface language):',
+      message: 'Select interface language / Chọn ngôn ngữ giao diện:',
       default: config.language || 'vi',
       choices: [
-        { name: '🇻🇳 Tiếng Việt', value: 'vi' },
-        { name: '🇬🇧 English', value: 'en' },
+        { name: 'Vietnamese (Tiếng Việt)', value: 'vi' },
+        { name: 'English', value: 'en' },
       ],
     });
 
@@ -388,6 +389,32 @@ export class SecurityPrompts {
         langChoice === 'en'
           ? '\n✔ Interface language set to English!'
           : '\n✔ Đã thiết lập ngôn ngữ giao diện sang Tiếng Việt!'
+      )
+    );
+    return updatedConfig;
+  }
+
+  static async promptSelectTheme(config: AppConfig): Promise<AppConfig> {
+    const choices = Object.values(THEMES).map((t) => ({
+      name: `${chalk.hex(t.accent)('■')} ${t.name}`,
+      value: t.id,
+    }));
+
+    const themeChoice = await select({
+      message: 'Chọn giao diện màu sắc Terminal (Select Terminal Color Theme):',
+      default: config.theme || 'cyber',
+      choices,
+    });
+
+    const updatedConfig: AppConfig = {
+      ...config,
+      theme: themeChoice,
+    };
+
+    const chosenTheme = THEMES[themeChoice];
+    console.log(
+      chalk.hex(chosenTheme.accent)(
+        `\n✔ Đã áp dụng theme: ${chosenTheme.name}!`
       )
     );
     return updatedConfig;

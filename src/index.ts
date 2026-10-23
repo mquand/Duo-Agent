@@ -17,6 +17,7 @@ import { DAGScheduler } from './core/scheduler.js';
 import { SessionManager } from './core/session.js';
 import { ActivityLogger, ActivityMonitor } from './core/monitor.js';
 import { i18n } from './ui/i18n.js';
+import { THEMES } from './ui/theme.js';
 import { ProviderFactory } from './providers/factory.js';
 import { ArchitectAgent } from './agents/architect.js';
 import { BuilderAgent } from './agents/builder.js';
@@ -277,6 +278,13 @@ async function startInteractiveSession(initialConfig: AppConfig, initialSessionI
       continue;
     }
 
+    if (trimmed === '/theme') {
+      config = await SecurityPrompts.promptSelectTheme(config);
+      await ConfigManager.saveConfig(config);
+      Logger.printBanner(config.theme);
+      continue;
+    }
+
     if (trimmed === '/sessions') {
       await printSessionsList(sessionManager);
       continue;
@@ -394,6 +402,23 @@ program
   });
 
 program
+  .command('theme [themeName]')
+  .description('Chọn hoặc thay đổi giao diện màu sắc Terminal (cyber, dracula, nord, monokai, matrix, sunset)')
+  .action(async (themeArg) => {
+    let config = await ConfigManager.loadConfig();
+    if (themeArg && THEMES[themeArg]) {
+      config.theme = themeArg;
+      await ConfigManager.saveConfig(config);
+      Logger.printBanner(config.theme);
+      console.log(chalk.green(`Đã áp dụng theme: ${THEMES[themeArg].name}`));
+    } else {
+      config = await SecurityPrompts.promptSelectTheme(config);
+      await ConfigManager.saveConfig(config);
+      Logger.printBanner(config.theme);
+    }
+  });
+
+program
   .name('duo')
   .description('Universal Multi-Agent Orchestrator: Architect, Builder, Auditor (Pluggable AI Models)')
   .version('1.0.0')
@@ -405,7 +430,11 @@ program
   .option('-r, --resume [sessionId]', 'Tiếp tục phiên làm việc trước đó (mặc định là phiên gần nhất)')
   .option('--sessions', 'Hiển thị danh sách tất cả các phiên làm việc đã lưu', false)
   .action(async (promptText, options) => {
-    Logger.printBanner();
+    // Load Configuration
+    let config = await ConfigManager.loadConfig();
+    i18n.setLanguage(config.language || 'vi');
+
+    Logger.printBanner(config.theme);
 
     const sessionManager = new SessionManager();
 
@@ -427,9 +456,6 @@ program
       return;
     }
 
-    // Load Configuration
-    let config = await ConfigManager.loadConfig();
-    i18n.setLanguage(config.language || 'vi');
     const missingKeys = ConfigManager.getMissingKeys(config);
 
     if (missingKeys.length > 0) {

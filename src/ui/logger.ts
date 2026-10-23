@@ -1,22 +1,26 @@
 import chalk from 'chalk';
+import { ThemeManager } from './theme.js';
 
 export class Logger {
-  static printBanner(): void {
-    const l1 = chalk.hex('#00F2FE').bold('  ██████╗ ██╗   ██╗ ██████╗       █████╗  ██████╗ ███████╗███╗   ██╗████████╗');
-    const l2 = chalk.hex('#4FACFE').bold('  ██╔══██╗██║   ██║██╔═══██╗     ██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝');
-    const l3 = chalk.hex('#00C9FF').bold('  ██║  ██║██║   ██║██║   ██║     ███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║   ');
-    const l4 = chalk.hex('#92FE9D').bold('  ██║  ██║██║   ██║██║   ██║     ██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║   ');
-    const l5 = chalk.hex('#38EF7D').bold('  ██████╔╝╚██████╔╝╚██████╔╝     ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║   ');
-    const l6 = chalk.hex('#11998E').bold('  ╚═════╝  ╚═════╝  ╚═════╝      ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝   ');
+  static printBanner(themeId?: string): void {
+    const theme = ThemeManager.getTheme(themeId);
+    const [c1, c2, c3, c4, c5, c6] = theme.gradient;
+
+    const l1 = chalk.hex(c1).bold('  ██████╗ ██╗   ██╗ ██████╗       █████╗  ██████╗ ███████╗███╗   ██╗████████╗');
+    const l2 = chalk.hex(c2).bold('  ██╔══██╗██║   ██║██╔═══██╗     ██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝');
+    const l3 = chalk.hex(c3).bold('  ██║  ██║██║   ██║██║   ██║     ███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║   ');
+    const l4 = chalk.hex(c4).bold('  ██║  ██║██║   ██║██║   ██║     ██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║   ');
+    const l5 = chalk.hex(c5).bold('  ██████╔╝╚██████╔╝╚██████╔╝     ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║   ');
+    const l6 = chalk.hex(c6).bold('  ╚═════╝  ╚═════╝  ╚═════╝      ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝   ');
 
     console.log(`\n${l1}\n${l2}\n${l3}\n${l4}\n${l5}\n${l6}`);
     console.log(chalk.gray('  ' + '═'.repeat(74)));
     console.log(
-      chalk.bold.cyan('   🥪 Sandwich Architecture ') +
+      chalk.hex(theme.accent).bold('   🥪 Sandwich Architecture ') +
       chalk.gray('• ') +
-      chalk.bold.green('🧘 Ponytail Philosophy ') +
+      chalk.hex(c5).bold('🧘 Ponytail Philosophy ') +
       chalk.gray('• ') +
-      chalk.bold.magenta('⚡ DAG Parallel Engine')
+      chalk.hex(c2).bold('⚡ DAG Parallel Engine')
     );
     console.log(
       chalk.gray('      Architect (Reasoning) ➔ Builder (Execution) ➔ Auditor (Quality)\n')

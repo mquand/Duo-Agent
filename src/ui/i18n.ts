@@ -23,7 +23,8 @@ export const i18n = {
     console.log(chalk.bold.cyan(isEn ? '⚡ INTERACTIVE REPL SLASH COMMANDS:' : '⚡ CÁC LỆNH SLASH TRONG CHẾ ĐỘ REPL:'));
     const slashCommands = [
       { cmd: '/help', desc: isEn ? 'Display this comprehensive help guide' : 'Hiển thị bảng hướng dẫn chi tiết này' },
-      { cmd: '/lang, /language', desc: isEn ? 'Switch language (English / Tiếng Việt)' : 'Đổi ngôn ngữ giao diện (English / Tiếng Việt)' },
+      { cmd: '/lang, /language', desc: isEn ? 'Switch language (English / Vietnamese)' : 'Đổi ngôn ngữ giao diện (English / Vietnamese)' },
+      { cmd: '/theme', desc: isEn ? 'Select terminal color theme (Cyber, Dracula, Nord...)' : 'Chọn giao diện màu sắc Terminal (Cyber, Dracula, Nord...)' },
       { cmd: '/model, /change_model', desc: isEn ? 'Interactively switch models for Architect, Builder, or Auditor' : 'Đổi model/provider cho từng vai trò' },
       { cmd: '/sessions', desc: isEn ? 'List all saved work sessions' : 'Xem danh sách toàn bộ các phiên làm việc' },
       { cmd: '/switch <id|name>', desc: isEn ? 'Switch to another session' : 'Chuyển sang phiên làm việc khác' },
@@ -51,6 +52,7 @@ export const i18n = {
       { cmd: 'duo --sessions', desc: isEn ? 'List all saved sessions' : 'Xem danh sách các phiên làm việc' },
       { cmd: 'duo --undo', desc: isEn ? 'Rollback changes to last checkpoint' : 'Khôi phục code về checkpoint an toàn' },
       { cmd: 'duo monitor', desc: isEn ? 'Open real-time live activity & diff watcher' : 'Mở màn hình soi live activity & diff thời gian thực' },
+      { cmd: 'duo theme [name]', desc: isEn ? 'Change terminal color theme' : 'Đổi giao diện màu sắc Terminal' },
       { cmd: 'duo lang [en|vi]', desc: isEn ? 'Set default CLI language' : 'Thiết lập ngôn ngữ mặc định' },
     ];
 

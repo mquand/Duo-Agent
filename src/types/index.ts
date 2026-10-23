@@ -14,6 +14,7 @@ export interface AppConfig {
     auditor: RoleConfig;
   };
   language?: 'en' | 'vi';
+  theme?: string;
   telemetry?: boolean;
 }
 

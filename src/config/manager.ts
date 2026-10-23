@@ -65,8 +65,15 @@ export class ConfigManager {
 
   static async saveConfig(config: AppConfig, isLocal = false): Promise<void> {
     const targetFile = isLocal ? LOCAL_CONFIG_FILE : GLOBAL_CONFIG_FILE;
-    await fs.ensureDir(path.dirname(targetFile));
-    await fs.writeJson(targetFile, config, { spaces: 2 });
+    try {
+      await fs.ensureDir(path.dirname(targetFile));
+      await fs.writeJson(targetFile, config, { spaces: 2 });
+    } catch {
+      if (!isLocal) {
+        // Fallback to saving locally if global home directory is not writable
+        await fs.writeJson(LOCAL_CONFIG_FILE, config, { spaces: 2 });
+      }
+    }
   }
 
   private static hydrateFromEnv(role: RoleConfig): void {
