@@ -2,13 +2,25 @@ import chalk from 'chalk';
 
 export class Logger {
   static printBanner(): void {
-    console.log(chalk.bold.cyan(`
-╔════════════════════════════════════════════════════════════════════╗
-║                      🚀  D U O - A G E N T                        ║
-║          Universal Multi-Agent Orchestrator (Open Source)          ║
-║          Architect ➔ Builder (Parallel Execution) ➔ Auditor        ║
-╚════════════════════════════════════════════════════════════════════╝
-`));
+    const l1 = chalk.hex('#00F2FE').bold('  ██████╗ ██╗   ██╗ ██████╗       █████╗  ██████╗ ███████╗███╗   ██╗████████╗');
+    const l2 = chalk.hex('#4FACFE').bold('  ██╔══██╗██║   ██║██╔═══██╗     ██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝');
+    const l3 = chalk.hex('#00C9FF').bold('  ██║  ██║██║   ██║██║   ██║     ███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║   ');
+    const l4 = chalk.hex('#92FE9D').bold('  ██║  ██║██║   ██║██║   ██║     ██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║   ');
+    const l5 = chalk.hex('#38EF7D').bold('  ██████╔╝╚██████╔╝╚██████╔╝     ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║   ');
+    const l6 = chalk.hex('#11998E').bold('  ╚═════╝  ╚═════╝  ╚═════╝      ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝   ');
+
+    console.log(`\n${l1}\n${l2}\n${l3}\n${l4}\n${l5}\n${l6}`);
+    console.log(chalk.gray('  ' + '═'.repeat(74)));
+    console.log(
+      chalk.bold.cyan('   🥪 Sandwich Architecture ') +
+      chalk.gray('• ') +
+      chalk.bold.green('🧘 Ponytail Philosophy ') +
+      chalk.gray('• ') +
+      chalk.bold.magenta('⚡ DAG Parallel Engine')
+    );
+    console.log(
+      chalk.gray('      Architect (Reasoning) ➔ Builder (Execution) ➔ Auditor (Quality)\n')
+    );
   }
 
   static printSuccess(msg: string): void {
