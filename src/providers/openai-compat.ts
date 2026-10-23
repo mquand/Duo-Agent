@@ -42,9 +42,11 @@ export class OpenAICompatProvider implements LLMProvider {
       response_format: options?.json ? { type: 'json_object' } : undefined,
     };
 
+    const isOpenAI = !this.client.baseURL || this.client.baseURL.includes('openai.com');
+
     if (isReasoningModel) {
       payload.max_completion_tokens = options?.maxTokens || 16000;
-      if (this.reasoningEffort && ['low', 'medium', 'high'].includes(this.reasoningEffort)) {
+      if (isOpenAI && this.reasoningEffort && ['low', 'medium', 'high'].includes(this.reasoningEffort)) {
         payload.reasoning_effort = this.reasoningEffort;
       }
     } else {
@@ -52,14 +54,29 @@ export class OpenAICompatProvider implements LLMProvider {
       payload.temperature = options?.temperature ?? 0.2;
     }
 
-    const response = await this.client.chat.completions.create(payload);
+    try {
+      const response = await this.client.chat.completions.create(payload);
+      const text = response.choices[0]?.message?.content || '';
 
-    const text = response.choices[0]?.message?.content || '';
-
-    return {
-      text,
-      inputTokens: response.usage?.prompt_tokens,
-      outputTokens: response.usage?.completion_tokens,
-    };
+      return {
+        text,
+        inputTokens: response.usage?.prompt_tokens,
+        outputTokens: response.usage?.completion_tokens,
+      };
+    } catch (err: any) {
+      const errMsg = err.message || String(err);
+      if (err.code === 'ECONNREFUSED' || errMsg.includes('ECONNREFUSED') || errMsg.includes('fetch failed')) {
+        throw new Error(
+          `Cannot connect to local LLM server at ${this.client.baseURL || 'http://localhost:11434'}. Please ensure Ollama is running ('ollama serve').`
+        );
+      }
+      if (err.status === 404 || errMsg.includes('not found')) {
+        throw new Error(`Model '${this.model}' was not found. If using Ollama, run: 'ollama pull ${this.model}'`);
+      }
+      if (err.status === 401 || errMsg.includes('401') || errMsg.includes('Incorrect API key')) {
+        throw new Error(`Authentication error (401): Invalid API key for model '${this.model}'. Use /model to update.`);
+      }
+      throw err;
+    }
   }
 }

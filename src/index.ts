@@ -1104,14 +1104,22 @@ program
       return;
     }
 
-    const missingKeys = ConfigManager.getMissingKeys(config);
+    const hasConfig = await ConfigManager.hasExistingConfig();
 
-    if (missingKeys.length > 0) {
-      console.log(chalk.yellow(`Notice: ${missingKeys.join(', ')}`));
+    if (!hasConfig) {
       const newConfig = await SecurityPrompts.promptOnboarding();
       config = { ...config, roles: { ...config.roles, ...newConfig.roles } };
       await ConfigManager.saveConfig(config);
       console.log(chalk.green('+ Saved configuration at ~/.duo/config.json\n'));
+    } else {
+      const missingKeys = ConfigManager.getMissingKeys(config, config.language === 'en');
+      if (missingKeys.length > 0) {
+        console.log(chalk.yellow(`Notice: ${missingKeys.join(', ')}`));
+        const newConfig = await SecurityPrompts.promptOnboarding();
+        config = { ...config, roles: { ...config.roles, ...newConfig.roles } };
+        await ConfigManager.saveConfig(config);
+        console.log(chalk.green('+ Saved configuration at ~/.duo/config.json\n'));
+      }
     }
 
     // Resolve target session
