@@ -1,9 +1,13 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import fs from 'fs-extra';
+import path from 'path';
 
 const execAsync = promisify(exec);
 
 export class GitGuard {
+  private static initialUntrackedFiles: Set<string> = new Set();
+
   static async isGitRepo(cwd: string = process.cwd()): Promise<boolean> {
     try {
       await execAsync('git rev-parse --is-inside-work-tree', { cwd });
@@ -25,6 +29,12 @@ export class GitGuard {
   static async createCheckpoint(cwd: string = process.cwd()): Promise<string | null> {
     if (!(await this.isGitRepo(cwd))) return null;
     try {
+      // Record initial untracked files to protect user's uncommitted work
+      try {
+        const { stdout: untrackedRaw } = await execAsync('git ls-files --others --exclude-standard', { cwd });
+        this.initialUntrackedFiles = new Set(untrackedRaw.split('\n').filter(Boolean));
+      } catch {}
+
       // Create a stash commit without modifying working tree
       const { stdout } = await execAsync('git stash create "duo-checkpoint"', { cwd });
       const ref = stdout.trim();
@@ -55,8 +65,20 @@ export class GitGuard {
       if (checkpointRef && checkpointRef !== 'HEAD') {
         await execAsync(`git reset --hard ${checkpointRef}`, { cwd });
       } else {
-        await execAsync('git checkout . && git clean -fd', { cwd });
+        await execAsync('git checkout .', { cwd });
       }
+
+      // Selectively clean only untracked files generated during execution, preserving pre-existing user files
+      try {
+        const { stdout: currentUntrackedRaw } = await execAsync('git ls-files --others --exclude-standard', { cwd });
+        const currentUntracked = currentUntrackedRaw.split('\n').filter(Boolean);
+        for (const file of currentUntracked) {
+          if (!this.initialUntrackedFiles.has(file)) {
+            await fs.remove(path.join(cwd, file));
+          }
+        }
+      } catch {}
+
       return true;
     } catch (e) {
       return false;

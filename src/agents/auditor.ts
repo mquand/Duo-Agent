@@ -13,7 +13,8 @@ export class AuditorAgent {
     goal: string,
     gitDiff: string,
     projectRules?: string,
-    cwd: string = process.cwd()
+    cwd: string = process.cwd(),
+    testResults?: { passed: boolean; output: string }
   ): Promise<AuditorReviewResult> {
     if (!gitDiff || gitDiff.trim().length === 0) {
       return {
@@ -25,9 +26,10 @@ export class AuditorAgent {
     const systemPrompt = `Bạn là Chief Code Auditor & Security Lead tối cao.
 Nhiệm vụ: Tổng duyệt toàn bộ Git Diff cuối cùng sau khi các Builder đã sửa xong:
 1. ĐỘ CHÍNH XÁC: Có đáp ứng 100% mục tiêu ban đầu không?
-2. EDGE CASES: Có sót kiểm tra nil/null, mảng rỗng, dữ liệu sai định dạng không?
-3. REGRESSION & SECURITY: Có nguy cơ làm hỏng luồng code khác hoặc dính lỗi bảo mật không?
-4. PONYTAIL: Code có bị rườm rà, thừa thãi không?
+2. THỰC TẾ KIỂM THỬ: Đối chiếu với kết quả chạy test thực tế (nếu có). Nếu test fail, phải chỉ ra nguyên nhân hoặc cung cấp polishDiffs để sửa.
+3. EDGE CASES: Có sót kiểm tra nil/null, mảng rỗng, dữ liệu sai định dạng không?
+4. REGRESSION & SECURITY: Có nguy cơ làm hỏng luồng code khác hoặc dính lỗi bảo mật không?
+5. PONYTAIL: Code có bị rườm rà, thừa thãi không?
 
 QUYỀN HẠN ĐẶC BIỆT (LAST-MILE POLISH):
 Nếu bạn phát hiện lỗi nhỏ hoặc thiếu sót biên, bạn có quyền tự tay cung cấp "polishDiffs" (khối SEARCH/REPLACE) để vá lỗi ngay lập tức, không cần trả về cho Builder!
@@ -49,6 +51,14 @@ Nếu bạn phát hiện lỗi nhỏ hoặc thiếu sót biên, bạn có quyề
     if (projectRules) {
       userPrompt += `QUY ƯỚC DỰ ÁN:\n${projectRules}\n\n`;
     }
+
+    if (testResults) {
+      userPrompt += `KẾT QUẢ CHẠY TEST THỰC TẾ TRÊN MÁY (GROUND TRUTH):\nTrạng thái: ${testResults.passed ? 'TẤT CẢ TEST ĐỀU PASS' : 'CÓ TEST BỊ FAIL'}\nLogs:\n${testResults.output.slice(0, 4000)}\n\n`;
+      if (!testResults.passed) {
+        userPrompt += `CHÚ Ý: Lệnh test thực tế bị thất bại! Bạn KHÔNG được phê duyệt ("approved": false) trừ khi bạn tự sửa được triệt để qua "polishDiffs"!\n\n`;
+      }
+    }
+
     userPrompt += `TOÀN BỘ GIT DIFF:\n\`\`\`diff\n${gitDiff.slice(0, 15000)}\n\`\`\`\n\nHãy tổng duyệt nghiêm ngặt và xuất JSON kết quả!`;
 
     const response = await this.provider.generate(

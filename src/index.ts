@@ -259,16 +259,40 @@ async function runWorkflow(
   }
 
   // 8. Chief Auditor Phase (Final Review & Last-Mile Polish)
+  let testResults: { passed: boolean; output: string } | undefined;
+  if (project.testCommand) {
+    const testSpinner = ora(
+      isEn
+        ? `Auditor: Running project test suite (${project.testCommand})...`
+        : `Auditor: Đang chạy kiểm thử tự động (${project.testCommand})...`
+    ).start();
+    try {
+      const { stdout, stderr } = await execAsync(project.testCommand, { cwd: process.cwd() });
+      testResults = { passed: true, output: (stdout || stderr || '').trim() };
+      testSpinner.succeed(chalk.green(isEn ? 'Auditor: Tests verified (PASS)' : 'Auditor: Kiểm thử thành công (PASS)'));
+    } catch (cmdErr: any) {
+      const errOut = (cmdErr.stdout || cmdErr.stderr || cmdErr.message || '').trim();
+      testResults = { passed: false, output: errOut };
+      testSpinner.warn(chalk.yellow(isEn ? 'Auditor: Tests failed (Regressions detected)' : 'Auditor: Kiểm thử thất bại (Phát hiện lỗi)'));
+    }
+  }
+
   const auditorSpinner = ora(
     isEn
-      ? `Auditor (${config.roles.auditor.model}): Reviewing git diff...`
-      : `Auditor (${config.roles.auditor.model}): Đang duyệt Git diff...`
+      ? `Auditor (${config.roles.auditor.model}): Reviewing git diff & test results...`
+      : `Auditor (${config.roles.auditor.model}): Đang duyệt Git diff & kết quả kiểm thử...`
   ).start();
   const auditorProvider = ProviderFactory.create(config.roles.auditor);
   const auditor = new AuditorAgent(auditorProvider);
 
   const accumulatedDiff = await GitGuard.getDiff(checkpointRef || 'HEAD');
-  const reviewResult = await auditor.review(plan.goal, accumulatedDiff, project.ruleContent);
+  const reviewResult = await auditor.review(
+    plan.goal,
+    accumulatedDiff,
+    project.ruleContent,
+    process.cwd(),
+    testResults
+  );
 
   if (reviewResult.approved) {
     auditorSpinner.succeed(chalk.green(isEn ? 'Auditor: Quality approved (Pass)' : 'Auditor: Phê duyệt (Pass)'));
