@@ -298,11 +298,6 @@ async function runWorkflow(
   );
 
   if (reviewResult.approved) {
-    auditorSpinner.succeed(chalk.green(isEn ? 'Auditor: Quality approved (Pass)' : 'Auditor: Phê duyệt (Pass)'));
-    if (reviewResult.critique) {
-      console.log(chalk.gray(`Critique: ${reviewResult.critique}`));
-    }
-    await ActivityLogger.log('auditor', 'Auditor: Phê duyệt (Pass)', reviewResult.critique);
     if (reviewResult.polishDiffs && reviewResult.polishDiffs.length > 0) {
       console.log(
         chalk.green(
@@ -312,11 +307,38 @@ async function runWorkflow(
         )
       );
       await ActivityLogger.log('auditor', `Tự động vá ${reviewResult.polishDiffs.length} chi tiết biên`);
+
+      // Critical ground truth: If Auditor modified code, re-run project test suite!
+      if (project.testCommand) {
+        try {
+          await execAsync(project.testCommand, { cwd: process.cwd() });
+          console.log(chalk.green(isEn ? '✔ Post-polish tests re-verified (PASS)' : '✔ Đã kiểm thử lại sau khi vá (PASS)'));
+        } catch (reTestErr: any) {
+          reviewResult.approved = false;
+          reviewResult.critique = `Bản vá polish của Auditor gây lỗi hồi quy test: ${(reTestErr.stderr || reTestErr.message).slice(0, 500)}`;
+          console.log(chalk.red(isEn ? '✖ Post-polish test failure! Approval revoked.' : '✖ Bản vá của Auditor làm hỏng test! Thu hồi phê duyệt.'));
+        }
+      }
     }
+
+    if (reviewResult.approved) {
+      auditorSpinner.succeed(chalk.green(isEn ? 'Auditor: Quality approved (Pass)' : 'Auditor: Phê duyệt (Pass)'));
+    } else {
+      auditorSpinner.fail(chalk.red(isEn ? 'Auditor: Rejected due to post-polish regression' : 'Auditor: Từ chối do lỗi hồi quy sau khi vá'));
+    }
+
+    if (reviewResult.critique) {
+      console.log(chalk.gray(`Critique: ${reviewResult.critique}`));
+    }
+    await ActivityLogger.log('auditor', 'Auditor: Phê duyệt (Pass)', reviewResult.critique);
   } else {
     auditorSpinner.warn(chalk.yellow(isEn ? 'Auditor advisory:' : 'Auditor lưu ý:'));
     console.log(chalk.gray(`Critique: ${reviewResult.critique}`));
     await ActivityLogger.log('auditor', 'Auditor: Lưu ý', reviewResult.critique);
+  }
+
+  if (!project.testCommand) {
+    console.log(chalk.yellow(isEn ? 'Notice: No automated test command detected in workspace. Verification status: UNVERIFIED.' : 'Lưu ý: Không tìm thấy lệnh test tự động trong dự án. Trạng thái kiểm thử: UNVERIFIED.'));
   }
 
   // 9. Auto Format Code

@@ -28,7 +28,7 @@ export interface DAGStep {
   instructions: string;
   depends_on: string[];
   verification_cmd?: string;
-  status?: 'pending' | 'running' | 'completed' | 'failed';
+  status?: 'pending' | 'running' | 'completed' | 'failed' | 'blocked';
   error?: string;
 }
 

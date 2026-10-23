@@ -1,3 +1,4 @@
+import path from 'path';
 import { DAGStep, Plan } from '../types/index.js';
 import { BuilderAgent, BuilderResult } from '../agents/builder.js';
 import { Blackboard } from './blackboard.js';
@@ -16,6 +17,10 @@ export class DAGScheduler {
   constructor(builder: BuilderAgent, blackboard: Blackboard) {
     this.builder = builder;
     this.blackboard = blackboard;
+  }
+
+  private normalizePath(f: string, cwd: string): string {
+    return path.normalize(path.isAbsolute(f) ? f : path.resolve(cwd, f));
   }
 
   async executePlan(
@@ -38,8 +43,9 @@ export class DAGScheduler {
         const allDepsMet = step.depends_on.every((depId) => completedStepIds.has(depId));
         if (!allDepsMet) return false;
 
-        // Check file collision with currently running steps
-        const hasLockConflict = step.target_files.some((f) => this.fileLocks.has(f));
+        // Check normalized file collision with currently running steps
+        const normalizedTargetFiles = step.target_files.map((f) => this.normalizePath(f, cwd));
+        const hasLockConflict = normalizedTargetFiles.some((f) => this.fileLocks.has(f));
         return !hasLockConflict;
       });
 
@@ -49,7 +55,13 @@ export class DAGScheduler {
           await new Promise((r) => setTimeout(r, 200));
           continue;
         } else {
-          // Deadlock or unresolvable dependencies
+          // Deadlock or all remaining steps are blocked
+          const pendingRemaining = steps.filter((s) => s.status === 'pending');
+          for (const s of pendingRemaining) {
+            s.status = 'blocked';
+            s.error = 'Bị chặn (Deadlock hoặc phụ thuộc không thể đáp ứng)';
+            callbacks?.onStepError?.(s, s.error);
+          }
           return {
             success: false,
             completedSteps: completedStepIds.size,
@@ -62,46 +74,62 @@ export class DAGScheduler {
       const executionPromises = readySteps.map(async (step) => {
         step.status = 'running';
         runningStepIds.add(step.id);
-        step.target_files.forEach((f) => this.fileLocks.add(f));
+        const normalizedTargetFiles = step.target_files.map((f) => this.normalizePath(f, cwd));
+        normalizedTargetFiles.forEach((f) => this.fileLocks.add(f));
 
         callbacks?.onStepStart?.(step);
 
-        const blackboardSummary = this.blackboard.getSummaryForWorker();
-        const result = await this.builder.executeStep(step, blackboardSummary, cwd);
+        try {
+          const blackboardSummary = this.blackboard.getSummaryForWorker();
+          const result = await this.builder.executeStep(step, blackboardSummary, cwd);
 
-        // Release file locks
-        step.target_files.forEach((f) => this.fileLocks.delete(f));
-        runningStepIds.delete(step.id);
+          if (result.success) {
+            step.status = 'completed';
+            completedStepIds.add(step.id);
+            await this.blackboard.recordStep({
+              stepId: step.id,
+              status: 'completed',
+              modifiedFiles: result.modifiedFiles,
+              findings: result.findings,
+              completedAt: new Date().toISOString(),
+            });
+            callbacks?.onStepComplete?.(step, result);
+          } else {
+            step.status = 'failed';
+            step.error = result.error;
+            await this.blackboard.recordStep({
+              stepId: step.id,
+              status: 'failed',
+              modifiedFiles: result.modifiedFiles,
+              error: result.error,
+              completedAt: new Date().toISOString(),
+            });
+            callbacks?.onStepError?.(step, result.error || 'Lỗi không xác định');
 
-        if (result.success) {
-          step.status = 'completed';
-          completedStepIds.add(step.id);
-          await this.blackboard.recordStep({
-            stepId: step.id,
-            status: 'completed',
-            modifiedFiles: result.modifiedFiles,
-            findings: result.findings,
-            completedAt: new Date().toISOString(),
-          });
-          callbacks?.onStepComplete?.(step, result);
-        } else {
-          step.status = 'failed';
-          step.error = result.error;
-          await this.blackboard.recordStep({
-            stepId: step.id,
-            status: 'failed',
-            modifiedFiles: result.modifiedFiles,
-            error: result.error,
-            completedAt: new Date().toISOString(),
-          });
-          callbacks?.onStepError?.(step, result.error || 'Lỗi không xác định');
+            // Cascade: Mark all dependent pending tasks as BLOCKED
+            const markBlocked = (failedId: string) => {
+              for (const s of steps) {
+                if (s.status === 'pending' && s.depends_on.includes(failedId)) {
+                  s.status = 'blocked';
+                  s.error = `Bị chặn do task phụ thuộc [${failedId}] thất bại`;
+                  callbacks?.onStepError?.(s, s.error);
+                  markBlocked(s.id);
+                }
+              }
+            };
+            markBlocked(step.id);
+          }
+        } finally {
+          // Guaranteed lock release even on error or unhandled exception
+          normalizedTargetFiles.forEach((f) => this.fileLocks.delete(f));
+          runningStepIds.delete(step.id);
         }
       });
 
       await Promise.all(executionPromises);
 
-      // Check if any step failed
-      const hasFailures = steps.some((s) => s.status === 'failed');
+      // Check if any step failed or blocked
+      const hasFailures = steps.some((s) => s.status === 'failed' || s.status === 'blocked');
       if (hasFailures) {
         return {
           success: false,
