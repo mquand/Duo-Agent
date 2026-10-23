@@ -84,9 +84,20 @@ export class ConfigManager {
     } else if (role.provider === 'google') {
       role.apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
     } else if (role.provider === 'openai-compatible') {
-      role.apiKey = process.env.OPENAI_API_KEY || process.env.DEEPSEEK_API_KEY;
-      if (!role.baseURL) {
-        // role.baseURL = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
+      if (role.baseURL?.includes('deepseek')) {
+        role.apiKey = process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY;
+      } else if (role.baseURL?.includes('groq')) {
+        role.apiKey = process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY;
+      } else if (role.baseURL?.includes('mistral')) {
+        role.apiKey = process.env.MISTRAL_API_KEY || process.env.OPENAI_API_KEY;
+      } else if (role.baseURL?.includes('x.ai')) {
+        role.apiKey = process.env.XAI_API_KEY || process.env.OPENAI_API_KEY;
+      } else if (role.baseURL?.includes('openrouter')) {
+        role.apiKey = process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY;
+      } else if (role.baseURL?.includes('localhost') || role.baseURL?.includes('127.0.0.1')) {
+        role.apiKey = 'not-needed-for-local';
+      } else {
+        role.apiKey = process.env.OPENAI_API_KEY || process.env.DEEPSEEK_API_KEY;
       }
     }
   }

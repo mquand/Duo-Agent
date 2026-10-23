@@ -23,9 +23,30 @@ interface ModelOption {
 
 const POPULAR_ARCHITECT_MODELS: ModelOption[] = [
   {
-    name: 'Claude 3.7 Sonnet (Anthropic - Tư duy kiến trúc & lập kế hoạch xuất sắc)',
+    name: 'Claude 3.7 Sonnet (Anthropic - Suy luận kiến trúc & lập kế hoạch xuất sắc)',
     provider: 'anthropic',
     model: 'claude-3-7-sonnet-20250219',
+  },
+  {
+    name: 'OpenAI o3-mini (OpenAI / ChatGPT - Mới nhất, suy luận logic toán & code đỉnh cao)',
+    provider: 'openai-compatible',
+    model: 'o3-mini',
+  },
+  {
+    name: 'OpenAI o1 (OpenAI - Flagship reasoning sâu cho bài toán phức tạp)',
+    provider: 'openai-compatible',
+    model: 'o1',
+  },
+  {
+    name: 'GPT-4o (OpenAI / ChatGPT Plus - Trí tuệ tổng hợp đa nhiệm)',
+    provider: 'openai-compatible',
+    model: 'gpt-4o',
+  },
+  {
+    name: 'DeepSeek R1 (DeepSeek - Mô hình suy luận nguồn mở mạnh, giá siêu rẻ)',
+    provider: 'openai-compatible',
+    model: 'deepseek-reasoner',
+    baseURL: 'https://api.deepseek.com/v1',
   },
   {
     name: 'Claude 3.5 Sonnet (Anthropic - Rất thông minh & ổn định)',
@@ -33,79 +54,109 @@ const POPULAR_ARCHITECT_MODELS: ModelOption[] = [
     model: 'claude-3-5-sonnet-latest',
   },
   {
-    name: 'DeepSeek R1 (DeepSeek Reasoning - Suy luận mạnh, giá siêu rẻ)',
+    name: 'Mistral Large 2 (Mistral AI - Suy luận chuẩn xác)',
     provider: 'openai-compatible',
-    model: 'deepseek-reasoner',
-    baseURL: 'https://api.deepseek.com/v1',
+    model: 'mistral-large-latest',
+    baseURL: 'https://api.mistral.ai/v1',
   },
   {
-    name: 'OpenAI o3-mini (OpenAI - Suy luận nhanh)',
+    name: 'xAI Grok 2 (xAI - Hiệu năng cao)',
     provider: 'openai-compatible',
-    model: 'o3-mini',
+    model: 'grok-2-latest',
+    baseURL: 'https://api.x.ai/v1',
   },
   {
-    name: 'GPT-4o (OpenAI)',
+    name: 'Ollama DeepSeek-R1 (Chạy 100% Offline tại máy)',
     provider: 'openai-compatible',
-    model: 'gpt-4o',
+    model: 'deepseek-r1:14b',
+    baseURL: 'http://localhost:11434/v1',
   },
 ];
 
 const POPULAR_BUILDER_MODELS: ModelOption[] = [
   {
-    name: 'Gemini 2.0 Flash (Google - Siêu nhanh, chi phí ~0, 1M context - Khuyên dùng)',
+    name: 'Gemini 2.0 Flash (Google - Siêu nhanh, giá rẻ ~0, 1M context - Khuyên dùng)',
     provider: 'google',
     model: 'gemini-2.0-flash',
   },
   {
-    name: 'Gemini 1.5 Flash (Google - Rất nhanh & ổn định)',
-    provider: 'google',
-    model: 'gemini-1.5-flash',
+    name: 'Mistral Codestral (Mistral AI - Model chuyên biệt viết code lập trình lừng danh)',
+    provider: 'openai-compatible',
+    model: 'codestral-latest',
+    baseURL: 'https://api.mistral.ai/v1',
   },
   {
-    name: 'DeepSeek V3 (DeepSeek Chat - Code cực tốt, giá cực rẻ)',
+    name: 'GPT-4o-mini (OpenAI / ChatGPT - Siêu tốc, giá cực rẻ, sinh code chuẩn)',
+    provider: 'openai-compatible',
+    model: 'gpt-4o-mini',
+  },
+  {
+    name: 'OpenAI o3-mini (OpenAI - Viết code chính xác cao với tư duy reasoning)',
+    provider: 'openai-compatible',
+    model: 'o3-mini',
+  },
+  {
+    name: 'DeepSeek V3 (DeepSeek Chat - Code cực tốt, tiết kiệm chi phí tối đa)',
     provider: 'openai-compatible',
     model: 'deepseek-chat',
     baseURL: 'https://api.deepseek.com/v1',
   },
   {
-    name: 'Llama 3.3 70B (Groq - Tốc độ cực nhanh ~300-500 tok/s)',
+    name: 'Llama 3.3 70B (Groq LPU - Tốc độ ánh sáng ~300-500 tokens/giây)',
     provider: 'openai-compatible',
     model: 'llama-3.3-70b-versatile',
     baseURL: 'https://api.groq.com/openai/v1',
   },
   {
-    name: 'Claude 3.5 Haiku (Anthropic - Nhanh, chuẩn cú pháp)',
+    name: 'Qwen 2.5 Coder 32B (Alibaba - Model mã nguồn mở chuyên code hàng đầu thế giới)',
+    provider: 'openai-compatible',
+    model: 'Qwen/Qwen2.5-Coder-32B-Instruct',
+  },
+  {
+    name: 'Claude 3.5 Haiku (Anthropic - Tốc độ cao, cú pháp chuẩn)',
     provider: 'anthropic',
     model: 'claude-3-5-haiku-latest',
   },
   {
-    name: 'Qwen 2.5 Coder 32B (OpenAI-compatible / Ollama / DeepInfra)',
+    name: 'Ollama Qwen 2.5 Coder (Chạy 100% Offline tại máy)',
     provider: 'openai-compatible',
-    model: 'Qwen/Qwen2.5-Coder-32B-Instruct',
+    model: 'qwen2.5-coder:32b',
+    baseURL: 'http://localhost:11434/v1',
   },
 ];
 
 const POPULAR_AUDITOR_MODELS: ModelOption[] = [
   {
-    name: 'Claude 3.7 Sonnet (Anthropic - Soi lỗi & review chuẩn xác nhất)',
+    name: 'Claude 3.7 Sonnet (Anthropic - Soi lỗi & review pull request số 1)',
     provider: 'anthropic',
     model: 'claude-3-7-sonnet-20250219',
   },
   {
-    name: 'Claude 3.5 Sonnet (Anthropic - Tổng duyệt chất lượng cao)',
-    provider: 'anthropic',
-    model: 'claude-3-5-sonnet-latest',
+    name: 'GPT-4o (OpenAI / ChatGPT - Thẩm định toàn diện, phát hiện bug tiềm ẩn)',
+    provider: 'openai-compatible',
+    model: 'gpt-4o',
   },
   {
-    name: 'DeepSeek R1 (DeepSeek Reasoning - Soi logic kỹ lưỡng)',
+    name: 'OpenAI o3-mini (OpenAI - Soi logic biên chặt chẽ)',
+    provider: 'openai-compatible',
+    model: 'o3-mini',
+  },
+  {
+    name: 'DeepSeek R1 (DeepSeek Reasoning - Soi edge cases cực sâu)',
     provider: 'openai-compatible',
     model: 'deepseek-reasoner',
     baseURL: 'https://api.deepseek.com/v1',
   },
   {
-    name: 'GPT-4o (OpenAI - Đánh giá toàn diện)',
+    name: 'Claude 3.5 Sonnet (Anthropic - Đánh giá chất lượng cao)',
+    provider: 'anthropic',
+    model: 'claude-3-5-sonnet-latest',
+  },
+  {
+    name: 'Mistral Large 2 (Mistral AI)',
     provider: 'openai-compatible',
-    model: 'gpt-4o',
+    model: 'mistral-large-latest',
+    baseURL: 'https://api.mistral.ai/v1',
   },
 ];
 
@@ -230,12 +281,24 @@ export class SecurityPrompts {
           value: 'balanced',
         },
         {
+          name: '🤖 OpenAI Full-Stack: o3-mini (Architect) + GPT-4o-mini (Builder) + GPT-4o (Auditor)',
+          value: 'openai',
+        },
+        {
+          name: '💻 Codestral Specialist: Claude (Architect) + Mistral Codestral (Builder) + Claude (Auditor)',
+          value: 'codestral',
+        },
+        {
           name: '💰 Siêu tiết kiệm (DeepSeek Team): DeepSeek-R1 (Architect) + DeepSeek-V3 (Builder) + DeepSeek-R1 (Auditor)',
           value: 'deepseek',
         },
         {
           name: '⚡ Tốc độ cao (OpenAI + Groq): o3-mini (Architect) + Groq Llama-3.3 (Builder) + GPT-4o (Auditor)',
           value: 'fast',
+        },
+        {
+          name: '🖥️  100% Offline Local (Ollama): DeepSeek-R1 (Architect) + Qwen 2.5 Coder (Builder) + DeepSeek-R1 (Auditor)',
+          value: 'offline',
         },
         {
           name: '🛠️  Tự chọn từng vai trò từ danh sách (Custom selection by role)',
@@ -251,6 +314,18 @@ export class SecurityPrompts {
     if (presetChoice === 'balanced') {
       architectConfig = { provider: 'anthropic', model: 'claude-3-7-sonnet-20250219' };
       builderConfig = { provider: 'google', model: 'gemini-2.0-flash' };
+      auditorConfig = { provider: 'anthropic', model: 'claude-3-7-sonnet-20250219' };
+    } else if (presetChoice === 'openai') {
+      architectConfig = { provider: 'openai-compatible', model: 'o3-mini' };
+      builderConfig = { provider: 'openai-compatible', model: 'gpt-4o-mini' };
+      auditorConfig = { provider: 'openai-compatible', model: 'gpt-4o' };
+    } else if (presetChoice === 'codestral') {
+      architectConfig = { provider: 'anthropic', model: 'claude-3-7-sonnet-20250219' };
+      builderConfig = {
+        provider: 'openai-compatible',
+        model: 'codestral-latest',
+        baseURL: 'https://api.mistral.ai/v1',
+      };
       auditorConfig = { provider: 'anthropic', model: 'claude-3-7-sonnet-20250219' };
     } else if (presetChoice === 'deepseek') {
       architectConfig = {
@@ -276,6 +351,22 @@ export class SecurityPrompts {
         baseURL: 'https://api.groq.com/openai/v1',
       };
       auditorConfig = { provider: 'openai-compatible', model: 'gpt-4o' };
+    } else if (presetChoice === 'offline') {
+      architectConfig = {
+        provider: 'openai-compatible',
+        model: 'deepseek-r1:14b',
+        baseURL: 'http://localhost:11434/v1',
+      };
+      builderConfig = {
+        provider: 'openai-compatible',
+        model: 'qwen2.5-coder:32b',
+        baseURL: 'http://localhost:11434/v1',
+      };
+      auditorConfig = {
+        provider: 'openai-compatible',
+        model: 'deepseek-r1:14b',
+        baseURL: 'http://localhost:11434/v1',
+      };
     } else {
       architectConfig = await this.selectOrCustomModel('🧠 Architect (Lên kế hoạch)', POPULAR_ARCHITECT_MODELS);
       builderConfig = await this.selectOrCustomModel('⚡ Builder (Viết code & Test)', POPULAR_BUILDER_MODELS);
