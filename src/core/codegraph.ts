@@ -1,0 +1,159 @@
+import fg from 'fast-glob';
+import fs from 'fs-extra';
+import path from 'path';
+
+export class CodeGraph {
+  static readonly IGNORE_PATTERNS = [
+    '**/node_modules/**',
+    '**/.git/**',
+    '**/_build/**',
+    '**/deps/**',
+    '**/dist/**',
+    '**/build/**',
+    '**/.next/**',
+    '**/target/**',
+    '**/vendor/**',
+    '**/*.min.js',
+    '**/*.lock',
+    '**/package-lock.json',
+  ];
+
+  private static filesCache: Map<string, { files: string[]; timestamp: number }> = new Map();
+  private static skeletonCache: Map<string, { skeleton: string; timestamp: number }> = new Map();
+  private static readonly CACHE_TTL_MS = 60_000; // 60 seconds TTL
+
+  static invalidateCache(cwd?: string): void {
+    if (cwd) {
+      this.filesCache.delete(cwd);
+      this.skeletonCache.delete(cwd);
+    } else {
+      this.filesCache.clear();
+      this.skeletonCache.clear();
+    }
+  }
+
+  static async scanFiles(cwd: string = process.cwd(), limit = 200, forceRefresh = false): Promise<string[]> {
+    const now = Date.now();
+    const cached = this.filesCache.get(cwd);
+    if (!forceRefresh && cached && now - cached.timestamp < this.CACHE_TTL_MS) {
+      return cached.files.slice(0, limit);
+    }
+
+    const ignorePatterns = [...this.IGNORE_PATTERNS];
+    const duoIgnorePath = path.join(cwd, '.duoignore');
+    if (await fs.pathExists(duoIgnorePath)) {
+      try {
+        const raw = await fs.readFile(duoIgnorePath, 'utf-8');
+        const custom = raw
+          .split('\n')
+          .map((l) => l.trim())
+          .filter((l) => l && !l.startsWith('#'));
+        ignorePatterns.push(...custom.map((p) => (p.includes('*') ? p : `**/${p}/**`)));
+      } catch {
+        // Ignore read errors
+      }
+    }
+
+    const files = await fg(['**/*.*'], {
+      cwd,
+      ignore: ignorePatterns,
+      dot: false,
+    });
+
+    this.filesCache.set(cwd, { files, timestamp: now });
+    return files.slice(0, limit);
+  }
+
+  static async generateSkeleton(cwd: string = process.cwd(), maxChars = 8000, forceRefresh = false): Promise<string> {
+    const now = Date.now();
+    const cached = this.skeletonCache.get(cwd);
+    if (!forceRefresh && cached && now - cached.timestamp < this.CACHE_TTL_MS) {
+      return cached.skeleton;
+    }
+
+    const files = await this.scanFiles(cwd, 150, forceRefresh);
+    let skeleton = '## CODEBASE STRUCTURE & FUNCTION SIGNATURES (CODE SKELETON):\n\n';
+
+    for (const relPath of files) {
+      if (skeleton.length >= maxChars) {
+        skeleton += '\n... [Truncated for token optimization]\n';
+        break;
+      }
+
+      const fullPath = path.join(cwd, relPath);
+      const ext = path.extname(relPath).toLowerCase();
+
+      // Only inspect code files
+      if (!['.ex', '.exs', '.ts', '.js', '.jsx', '.tsx', '.py', '.rs', '.go'].includes(ext)) {
+        continue;
+      }
+
+      try {
+        const content = await fs.readFile(fullPath, 'utf-8');
+        const signatures = this.extractSignatures(content, ext);
+        if (signatures.length > 0) {
+          skeleton += `File: ${relPath}\n${signatures.join('\n')}\n\n`;
+        }
+      } catch {
+        // Skip unreadable files
+      }
+    }
+
+    const finalSkeleton = skeleton.trim();
+    this.skeletonCache.set(cwd, { skeleton: finalSkeleton, timestamp: now });
+    return finalSkeleton;
+  }
+
+  private static extractSignatures(content: string, ext: string): string[] {
+    const lines = content.split('\n');
+    const signatures: string[] = [];
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+
+      // Elixir
+      if (ext === '.ex' || ext === '.exs') {
+        if (trimmed.startsWith('defmodule ') || trimmed.startsWith('def ') || trimmed.startsWith('defp ')) {
+          signatures.push('  ' + trimmed.split(' do')[0]);
+        }
+      }
+      // JS / TS
+      else if (['.ts', '.tsx', '.js', '.jsx'].includes(ext)) {
+        if (
+          trimmed.startsWith('export class ') ||
+          trimmed.startsWith('export function ') ||
+          trimmed.startsWith('export interface ') ||
+          trimmed.startsWith('export type ') ||
+          trimmed.startsWith('export const ')
+        ) {
+          signatures.push('  ' + trimmed.replace(/\{.*$/, '').trim());
+        }
+      }
+      // Python
+      else if (ext === '.py') {
+        if (trimmed.startsWith('def ') || trimmed.startsWith('class ')) {
+          signatures.push('  ' + trimmed.replace(/:$/, ''));
+        }
+      }
+      // Go
+      else if (ext === '.go') {
+        if (trimmed.startsWith('func ') || trimmed.startsWith('type ')) {
+          signatures.push('  ' + trimmed.replace(/\{.*$/, '').trim());
+        }
+      }
+      // Rust
+      else if (ext === '.rs') {
+        if (trimmed.startsWith('pub fn ') || trimmed.startsWith('fn ') || trimmed.startsWith('pub struct ')) {
+          signatures.push('  ' + trimmed.replace(/\{.*$/, '').trim());
+        }
+      }
+
+      if (signatures.length >= 10) {
+        signatures.push('  ...');
+        break;
+      }
+    }
+
+    return signatures;
+  }
+}

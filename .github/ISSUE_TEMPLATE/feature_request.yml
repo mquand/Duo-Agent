@@ -1,0 +1,62 @@
+name: Feature Request
+description: Suggest an idea or architectural improvement for Duo-Agent
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting an improvement for Duo-Agent! 
+        Remember our core **Ponytail Philosophy**: *"The best code is the code you never wrote."* We prioritize high-leverage architectural improvements over superficial feature bloat.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or Motivation
+      description: Is your feature request related to a problem or limitation?
+      placeholder: I am always frustrated when...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution or workflow you would like to see.
+      placeholder: It would be great if Duo-Agent could...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Primary Affected Component
+      description: Which part of the Duo-Agent architecture would this touch?
+      options:
+        - Architect Agent (Planning & DAG generation)
+        - Builder Agent (Diffing, AST slicing & workers)
+        - Auditor Agent (Verification & last-mile polish)
+        - DAG Scheduler & File Mutex
+        - Git Worktree & Integration Manager
+        - Model Providers & Catalog
+        - Terminal UI & Interactive REPL
+        - Repository Rules (.duorules)
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: A clear and concise description of any alternative solutions or features you've considered.
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add any other context, benchmarks, or screenshots about the feature request here.
+    validations:
+      required: false
