@@ -369,11 +369,15 @@ export class SecurityPrompts {
       message: 'Configuration mode:',
       choices: [
         {
-          name: `${chalk.bold.yellow('⭐ Recommended Presets')}  ${chalk.gray('(Pre-optimized agent trios: Claude, Balanced, Offline Ollama, DeepSeek...)')}`,
+          name: `${chalk.bold.yellow('⭐ Recommended Presets')}      ${chalk.gray('(Curated setups: Pure Claude, Pure OpenAI, Pure Gemini, Hybrid, Offline...)')}`,
           value: 'recommended',
         },
         {
-          name: `${chalk.bold.cyan('🛠️  Custom Configuration')} ${chalk.gray('(Individually configure Architect, Builder, and Auditor)')}`,
+          name: `${chalk.bold.green('🎯 Single Model for All Roles')} ${chalk.gray('(Use ONE model & ONE API key for Architect, Builder, and Auditor)')}`,
+          value: 'single',
+        },
+        {
+          name: `${chalk.bold.cyan('🛠️  Custom Role-by-Role')}       ${chalk.gray('(Individually configure Architect, Builder, and Auditor)')}`,
           value: 'custom',
         },
       ],
@@ -383,62 +387,68 @@ export class SecurityPrompts {
     let builderConfig: RoleConfig;
     let auditorConfig: RoleConfig;
 
-    if (configMode === 'recommended') {
+    if (configMode === 'single') {
+      console.log(chalk.cyan('\nConfigure Single Model (Applies to Architect, Builder & Auditor):'));
+      const single = await this.selectOrCustomModel('All Roles', POPULAR_ARCHITECT_MODELS);
+      architectConfig = { ...single };
+      builderConfig = { ...single };
+      auditorConfig = { ...single };
+    } else if (configMode === 'recommended') {
       const presetChoice = await select({
         message: 'Select Recommended Preset:',
         choices: [
           {
-            name: `${chalk.bold.cyan('Claude 5.5 Flagship')}   ${chalk.gray('Architect: Opus 5.5 | Builder: Gemini Flash | Auditor: Sonnet 5.5')}`,
-            value: 'flagship',
+            name: `${chalk.bold.hex('#9333EA')('🟣 Pure Claude (100% Anthropic)')}  ${chalk.gray('Arch: Sonnet 5.5 | Build: Haiku 3.5 | Audit: Sonnet (Only 1 Anthropic key!)')}`,
+            value: 'claude_pure',
           },
           {
-            name: `${chalk.bold.green('Balanced Duo')}         ${chalk.gray('Architect: Sonnet 5.5 | Builder: Gemini Flash | Auditor: Sonnet 5.5')}`,
-            value: 'balanced',
+            name: `${chalk.bold.green('🟢 Pure OpenAI (100% OpenAI)')}     ${chalk.gray('Arch: o3-mini | Build: GPT-4o-mini | Audit: GPT-4o (Only 1 OpenAI key!)')}`,
+            value: 'openai_pure',
           },
           {
-            name: `${chalk.bold.yellow('Local Offline (Ollama)')} ${chalk.gray('Architect: DeepSeek-R1 14B | Builder: Qwen2.5 32B | Auditor: R1 (100% Free)')}`,
+            name: `${chalk.bold.blue('🔵 Pure Gemini (100% Google)')}     ${chalk.gray('Arch: Gemini 2.0 Pro | Build: Flash | Audit: Flash (Only 1 Google key!)')}`,
+            value: 'gemini_pure',
+          },
+          {
+            name: `${chalk.bold.magenta('🧠 Pure DeepSeek (100% DeepSeek)')} ${chalk.gray('Arch: DeepSeek R1 | Build: DeepSeek V3 | Audit: R1 (Only 1 DeepSeek key!)')}`,
+            value: 'deepseek_pure',
+          },
+          {
+            name: `${chalk.bold.yellow('🏠 Local Offline (100% Ollama)')}   ${chalk.gray('Arch: DeepSeek-R1 14B | Build: Qwen2.5 32B | Audit: R1 (100% Free, 0đ API)')}`,
             value: 'offline',
           },
           {
-            name: `${chalk.bold.magenta('DeepSeek Pure')}       ${chalk.gray('Architect: DeepSeek R1 | Builder: DeepSeek V3 | Auditor: DeepSeek R1')}`,
-            value: 'deepseek',
+            name: `${chalk.bold.cyan('⭐ Claude 5.5 Flagship (Hybrid)')} ${chalk.gray('Arch: Opus 5.5 | Build: Gemini Flash | Audit: Sonnet 5.5 (Multi-provider)')}`,
+            value: 'flagship',
           },
           {
-            name: `${chalk.bold.blue('OpenAI Ecosystem')}     ${chalk.gray('Architect: GPT-6 Astra / o3-mini | Builder: GPT-6 Luna | Auditor: Sol')}`,
-            value: 'gpt6',
+            name: `${chalk.bold.white('⚡ Balanced Duo (Hybrid)')}        ${chalk.gray('Arch: Sonnet 5.5 | Build: Gemini Flash | Audit: Sonnet 5.5 (Multi-provider)')}`,
+            value: 'balanced',
           },
           {
-            name: `${chalk.bold.hex('#FF8800')('Groq Ultra Speed')}     ${chalk.gray('Architect: Sonnet 5.5 | Builder: Llama 3.3 70B (Groq) | Auditor: Haiku')}`,
+            name: `${chalk.bold.hex('#FF8800')('🚀 Groq Ultra Speed (Hybrid)')}   ${chalk.gray('Arch: Sonnet 5.5 | Build: Llama 3.3 70B (Groq) | Audit: Haiku')}`,
             value: 'fast',
           },
           {
-            name: `${chalk.bold.white('Codestral Specialized')} ${chalk.gray('Architect: Sonnet 5.5 | Builder: Codestral (Mistral) | Auditor: Sonnet')}`,
+            name: `${chalk.bold.gray('💻 Codestral Specialized (Hybrid)')} ${chalk.gray('Arch: Sonnet 5.5 | Build: Codestral (Mistral) | Audit: Sonnet')}`,
             value: 'codestral',
           },
         ],
       });
 
-      if (presetChoice === 'flagship') {
-        architectConfig = { provider: 'anthropic', model: 'claude-opus-5-5' };
-        builderConfig = { provider: 'google', model: 'gemini-2.0-flash' };
-        auditorConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
-      } else if (presetChoice === 'gpt6') {
-        architectConfig = { provider: 'openai-compatible', model: 'gpt-6-astra' };
-        builderConfig = { provider: 'openai-compatible', model: 'gpt-6-luna' };
-        auditorConfig = { provider: 'openai-compatible', model: 'gpt-6.1-sol' };
-      } else if (presetChoice === 'balanced') {
+      if (presetChoice === 'claude_pure') {
         architectConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
+        builderConfig = { provider: 'anthropic', model: 'claude-3-5-haiku-latest' };
+        auditorConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
+      } else if (presetChoice === 'openai_pure') {
+        architectConfig = { provider: 'openai-compatible', model: 'o3-mini' };
+        builderConfig = { provider: 'openai-compatible', model: 'gpt-4o-mini' };
+        auditorConfig = { provider: 'openai-compatible', model: 'gpt-4o' };
+      } else if (presetChoice === 'gemini_pure') {
+        architectConfig = { provider: 'google', model: 'gemini-2.0-pro-exp-02-05' };
         builderConfig = { provider: 'google', model: 'gemini-2.0-flash' };
-        auditorConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
-      } else if (presetChoice === 'codestral') {
-        architectConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
-        builderConfig = {
-          provider: 'openai-compatible',
-          model: 'codestral-latest',
-          baseURL: 'https://api.mistral.ai/v1',
-        };
-        auditorConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
-      } else if (presetChoice === 'deepseek') {
+        auditorConfig = { provider: 'google', model: 'gemini-2.0-flash' };
+      } else if (presetChoice === 'deepseek_pure') {
         architectConfig = {
           provider: 'openai-compatible',
           model: 'deepseek-reasoner',
@@ -454,6 +464,22 @@ export class SecurityPrompts {
           model: 'deepseek-reasoner',
           baseURL: 'https://api.deepseek.com/v1',
         };
+      } else if (presetChoice === 'flagship') {
+        architectConfig = { provider: 'anthropic', model: 'claude-opus-5-5' };
+        builderConfig = { provider: 'google', model: 'gemini-2.0-flash' };
+        auditorConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
+      } else if (presetChoice === 'balanced') {
+        architectConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
+        builderConfig = { provider: 'google', model: 'gemini-2.0-flash' };
+        auditorConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
+      } else if (presetChoice === 'codestral') {
+        architectConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
+        builderConfig = {
+          provider: 'openai-compatible',
+          model: 'codestral-latest',
+          baseURL: 'https://api.mistral.ai/v1',
+        };
+        auditorConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
       } else if (presetChoice === 'fast') {
         architectConfig = { provider: 'anthropic', model: 'claude-sonnet-5-5' };
         builderConfig = {
@@ -498,11 +524,12 @@ export class SecurityPrompts {
     // Ask for API keys if needed
     console.log(chalk.gray('\nAPI Keys Configuration:'));
 
-    if (architectConfig.provider === 'anthropic' || auditorConfig.provider === 'anthropic') {
+    // Anthropic keys
+    const anthropicRoles = [architectConfig, builderConfig, auditorConfig].filter((r) => r.provider === 'anthropic');
+    if (anthropicRoles.length > 0) {
       const hasEnv = !!process.env.ANTHROPIC_API_KEY;
       if (hasEnv) {
-        architectConfig.apiKey = process.env.ANTHROPIC_API_KEY;
-        if (auditorConfig.provider === 'anthropic') auditorConfig.apiKey = process.env.ANTHROPIC_API_KEY;
+        for (const r of anthropicRoles) r.apiKey = process.env.ANTHROPIC_API_KEY;
         console.log(chalk.green(`+ Found $ANTHROPIC_API_KEY in environment (${maskKey(process.env.ANTHROPIC_API_KEY!)})`));
       } else {
         const key = await password({
@@ -510,8 +537,7 @@ export class SecurityPrompts {
           mask: '*',
         });
         if (key.trim()) {
-          architectConfig.apiKey = key.trim();
-          if (auditorConfig.provider === 'anthropic') auditorConfig.apiKey = key.trim();
+          for (const r of anthropicRoles) r.apiKey = key.trim();
           console.log(chalk.green(`+ Anthropic Key received (${maskKey(key.trim())})`));
         } else {
           console.log(chalk.yellow('⚠️ Notice: Claude models require an Anthropic API key to run.'));
@@ -519,10 +545,12 @@ export class SecurityPrompts {
       }
     }
 
-    if (builderConfig.provider === 'google') {
+    // Google Gemini keys
+    const googleRoles = [architectConfig, builderConfig, auditorConfig].filter((r) => r.provider === 'google');
+    if (googleRoles.length > 0) {
       const envKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
       if (envKey) {
-        builderConfig.apiKey = envKey;
+        for (const r of googleRoles) r.apiKey = envKey;
         console.log(chalk.green(`+ Found $GEMINI_API_KEY in environment (${maskKey(envKey)})`));
       } else {
         const key = await password({
@@ -530,47 +558,69 @@ export class SecurityPrompts {
           mask: '*',
         });
         if (key.trim()) {
-          builderConfig.apiKey = key.trim();
+          for (const r of googleRoles) r.apiKey = key.trim();
           console.log(chalk.green(`+ Google Gemini Key received (${maskKey(key.trim())})`));
         } else {
-          console.log(chalk.yellow('⚠️ Notice: Gemini Flash requires a Google API key to run.'));
+          console.log(chalk.yellow('⚠️ Notice: Gemini models require a Google API key to run.'));
         }
       }
     }
 
-    if (
-      architectConfig.provider === 'openai-compatible' ||
-      builderConfig.provider === 'openai-compatible' ||
-      auditorConfig.provider === 'openai-compatible'
-    ) {
-      const isLocal =
-        architectConfig.baseURL?.includes('localhost') ||
-        builderConfig.baseURL?.includes('localhost') ||
-        auditorConfig.baseURL?.includes('localhost') ||
-        architectConfig.baseURL?.includes('127.0.0.1');
+    // OpenAI-compatible keys
+    const openAIRoles = [architectConfig, builderConfig, auditorConfig].filter((r) => r.provider === 'openai-compatible');
+    if (openAIRoles.length > 0) {
+      const allLocal = openAIRoles.every((r) =>
+        r.baseURL?.includes('localhost') || r.baseURL?.includes('127.0.0.1')
+      );
 
-      if (isLocal) {
-        if (architectConfig.provider === 'openai-compatible') architectConfig.apiKey = 'not-needed-for-local';
-        if (builderConfig.provider === 'openai-compatible') builderConfig.apiKey = 'not-needed-for-local';
-        if (auditorConfig.provider === 'openai-compatible') auditorConfig.apiKey = 'not-needed-for-local';
+      if (allLocal) {
+        for (const r of openAIRoles) r.apiKey = 'not-needed-for-local';
         console.log(chalk.green('+ Local LLM endpoint detected (Ollama) - No API key needed.'));
       } else {
-        const envKey = process.env.OPENAI_API_KEY || process.env.DEEPSEEK_API_KEY || process.env.GROQ_API_KEY;
-        if (envKey) {
-          if (architectConfig.provider === 'openai-compatible') architectConfig.apiKey = envKey;
-          if (builderConfig.provider === 'openai-compatible') builderConfig.apiKey = envKey;
-          if (auditorConfig.provider === 'openai-compatible') auditorConfig.apiKey = envKey;
-          console.log(chalk.green(`+ Found API key in environment (${maskKey(envKey)})`));
+        const isOpenRouter = openAIRoles.some((r) => r.baseURL?.includes('openrouter'));
+        const isDeepSeek = openAIRoles.some((r) => r.baseURL?.includes('deepseek'));
+        const isGroq = openAIRoles.some((r) => r.baseURL?.includes('groq'));
+        const isMistral = openAIRoles.some((r) => r.baseURL?.includes('mistral'));
+
+        let keyName = 'OpenAI';
+        let envVar = process.env.OPENAI_API_KEY;
+        if (isOpenRouter) {
+          keyName = 'OpenRouter';
+          envVar = process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY;
+        } else if (isDeepSeek) {
+          keyName = 'DeepSeek';
+          envVar = process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY;
+        } else if (isGroq) {
+          keyName = 'Groq';
+          envVar = process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY;
+        } else if (isMistral) {
+          keyName = 'Mistral';
+          envVar = process.env.MISTRAL_API_KEY || process.env.OPENAI_API_KEY;
+        }
+
+        if (envVar) {
+          for (const r of openAIRoles) {
+            if (!r.baseURL?.includes('localhost') && !r.baseURL?.includes('127.0.0.1')) {
+              r.apiKey = envVar;
+            } else {
+              r.apiKey = 'not-needed-for-local';
+            }
+          }
+          console.log(chalk.green(`+ Found $${keyName.toUpperCase()}_API_KEY in environment (${maskKey(envVar)})`));
         } else {
           const key = await password({
-            message: `API Key for ${architectConfig.model || builderConfig.model} ${chalk.dim('[Paste sk-... or press Enter to set later]')}:`,
+            message: `${keyName} API Key ${chalk.dim('[Paste sk-... or press Enter to set later]')}:`,
             mask: '*',
           });
           if (key.trim()) {
-            if (architectConfig.provider === 'openai-compatible') architectConfig.apiKey = key.trim();
-            if (builderConfig.provider === 'openai-compatible') builderConfig.apiKey = key.trim();
-            if (auditorConfig.provider === 'openai-compatible') auditorConfig.apiKey = key.trim();
-            console.log(chalk.green(`+ API Key received (${maskKey(key.trim())})`));
+            for (const r of openAIRoles) {
+              if (!r.baseURL?.includes('localhost') && !r.baseURL?.includes('127.0.0.1')) {
+                r.apiKey = key.trim();
+              } else {
+                r.apiKey = 'not-needed-for-local';
+              }
+            }
+            console.log(chalk.green(`+ ${keyName} API Key received (${maskKey(key.trim())})`));
           }
         }
       }
@@ -590,11 +640,15 @@ export class SecurityPrompts {
       message: 'Model configuration mode:',
       choices: [
         {
-          name: `${chalk.bold.yellow('⭐ Recommended Presets')}  ${chalk.gray('(Switch all roles to a curated preset: Claude, Balanced, Local Ollama, DeepSeek...)')}`,
+          name: `${chalk.bold.yellow('⭐ Recommended Presets')}      ${chalk.gray('(Switch all roles to a curated preset: Pure Claude, OpenAI, Offline...)')}`,
           value: 'preset',
         },
         {
-          name: `${chalk.bold.cyan('🛠️  Custom Role Setup')}    ${chalk.gray('(Customize Architect, Builder, or Auditor individually)')}`,
+          name: `${chalk.bold.green('🎯 Single Model for All Roles')} ${chalk.gray('(Apply ONE model & API key to Architect, Builder, and Auditor)')}`,
+          value: 'single',
+        },
+        {
+          name: `${chalk.bold.cyan('🛠️  Custom Role Setup')}          ${chalk.gray('(Customize Architect, Builder, or Auditor individually)')}`,
           value: 'role',
         },
       ],
@@ -606,6 +660,64 @@ export class SecurityPrompts {
         ...config,
         roles: newConfig.roles,
       };
+    }
+
+    if (modeChoice === 'single') {
+      console.log(chalk.cyan('\nConfigure Single Model (Applies to Architect, Builder & Auditor):'));
+      const singleRoleConfig = await this.selectOrCustomModel('All Roles', POPULAR_ARCHITECT_MODELS);
+
+      const isLocal =
+        singleRoleConfig.provider === 'openai-compatible' &&
+        (singleRoleConfig.baseURL?.includes('localhost') || singleRoleConfig.baseURL?.includes('127.0.0.1'));
+
+      if (isLocal) {
+        singleRoleConfig.apiKey = 'not-needed-for-local';
+        console.log(chalk.green(`+ Local model selected - No API key required.`));
+      } else {
+        const currentKey = config.roles.architect?.apiKey;
+        const keyHint = currentKey
+          ? chalk.dim(`[Enter to keep current (${maskKey(currentKey)}), or type "none" to remove]`)
+          : chalk.dim('[Paste key, Enter if set in env, or type "none" for no key]');
+
+        const inputKey = await input({
+          message: `API Key for ${singleRoleConfig.model} ${keyHint}:`,
+        });
+        const trimmed = inputKey.trim();
+        const lower = trimmed.toLowerCase();
+        if (['none', 'clear', 'remove', 'delete', 'no', 'unset'].includes(lower)) {
+          delete singleRoleConfig.apiKey;
+          console.log(chalk.yellow(`+ Removed API Key (key cleared).`));
+        } else if (trimmed) {
+          singleRoleConfig.apiKey = trimmed;
+          console.log(chalk.green(`+ API Key updated (${maskKey(trimmed)})`));
+        } else {
+          singleRoleConfig.apiKey = config.roles.architect?.apiKey;
+        }
+      }
+
+      const effortChoice = await select({
+        message: `Reasoning effort / Thinking budget:`,
+        default: config.roles.architect?.reasoningEffort || 'medium',
+        choices: [
+          { name: 'Medium (Balanced speed & depth - recommended)', value: 'medium' },
+          { name: 'High (Maximum reasoning depth & extended thinking)', value: 'high' },
+          { name: 'Low (Fast execution, minimal thinking tokens)', value: 'low' },
+          { name: 'Off / Default (Standard execution without extended thinking)', value: 'off' },
+        ],
+      });
+      singleRoleConfig.reasoningEffort = effortChoice as 'low' | 'medium' | 'high' | 'off';
+
+      const updatedConfig: AppConfig = {
+        ...config,
+        roles: {
+          architect: { ...singleRoleConfig },
+          builder: { ...singleRoleConfig },
+          auditor: { ...singleRoleConfig },
+        },
+      };
+
+      console.log(chalk.green(`\n+ All roles set to: ${singleRoleConfig.model} (${singleRoleConfig.provider}, effort: ${singleRoleConfig.reasoningEffort})\n`));
+      return updatedConfig;
     }
 
     const roleChoice = await select({

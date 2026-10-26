@@ -54,6 +54,21 @@ Duo-Agent provides 100% freedom to use **any custom model or custom endpoint**. 
 - **DeepSeek / Groq / Mistral / Together**: Connect directly via official APIs.
 - **Pure Custom**: Specify any arbitrary base URL and model name.
 
+### Single-Provider & Single-Model Mode
+
+If you only have access to **one AI provider** or want to use **one single model for all roles**:
+1. **Single-Provider Presets**:
+   - `🟣 Pure Claude`: 100% Anthropic (`claude-sonnet-5-5` + `claude-3-5-haiku-latest`). Requires **only 1 key** (`ANTHROPIC_API_KEY`).
+   - `🟢 Pure OpenAI`: 100% OpenAI (`o3-mini` + `gpt-4o-mini` + `gpt-4o`). Requires **only 1 key** (`OPENAI_API_KEY`).
+   - `🔵 Pure Gemini`: 100% Google (`gemini-2.0-pro` + `gemini-2.0-flash`). Requires **only 1 key** (`GEMINI_API_KEY`).
+   - `🧠 Pure DeepSeek`: 100% DeepSeek (`deepseek-reasoner` + `deepseek-chat`). Requires **only 1 key** (`DEEPSEEK_API_KEY`).
+   - `🏠 Local Offline`: 100% Ollama (`deepseek-r1:14b` + `qwen2.5-coder:32b`). Requires **0 keys**.
+2. **Single Model for All Roles**:
+   - In `/model` or first-time setup, choose **🎯 Single Model for All Roles**.
+   - Pick or type any model once (e.g. `claude-3-7-sonnet`, `gpt-4o`, `gemini-2.0-flash`, or custom).
+   - Enter your key once (or auto-detect from `.env`).
+   - Architect, Builder, and Auditor will all execute using that exact model and key with zero multi-key requirements.
+
 Use the interactive `/model` command in the Duo shell or pass `--model` to configure.
 
 ---

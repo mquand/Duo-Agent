@@ -292,10 +292,11 @@ npm test
 * **Theo dõi chi phí & Token trực tiếp**:
   * Tiêu đề ghim hiển thị chi phí tích lũy theo thời gian thực: `Duo Agent v1.0.0 · ~$0.021 (14.2k tokens)`.
   * Nhập `/cost` để xem bảng thống kê chi tiết chi phí của từng Agent.
-* **Hỗ trợ các Model Frontier mới nhất**:
-  * Claude 5.5 (`claude-opus-5-5`, `claude-sonnet-5-5`, `claude-haiku-5-5`).
-  * GPT-6 (`gpt-6-astra`, `gpt-6.1-sol`, `gpt-6-luna`).
-  * Google Gemini 2.0 Flash, DeepSeek-V3, Groq, Ollama / vLLM chạy offline trên máy.
+* **Linh hoạt Model & Hỗ trợ chạy 1 Model / 1 Key duy nhất**:
+  * **Chế độ 1 Model cho tất cả vai trò (`Single Model Mode`)**: Người dùng chỉ có 1 key (ví dụ chỉ Claude hoặc chỉ OpenAI) có thể áp dụng 1 model duy nhất cho cả Architect, Builder và Auditor trong 1 bước duy nhất.
+  * **Bộ preset thuần 1 Provider**: Pure Claude (100% Anthropic), Pure OpenAI (100% OpenAI), Pure Gemini (100% Google), Pure DeepSeek, hoặc Local Offline (100% Ollama không cần key).
+  * **Hỗ trợ Custom Model & Custom Endpoint**: Kết nối tới bất kỳ model nào qua OpenRouter (300+ models), Ollama, vLLM, LM Studio, Groq, Mistral.
+  * **Quản lý API Key độc lập (`/key` & `duo key`)**: Xem key dưới dạng ẩn (`sk-...`), thay đổi hoặc xóa bỏ key đã lưu (chuyển sang không dùng key hoặc dùng biến môi trường).
 * **An toàn tuyệt đối (Git Checkpoint)**:
   * Tự động tạo điểm khôi phục Git trước khi sửa bất kỳ file nào.
   * Hoàn tác ngay lập tức với `duo --undo` hoặc gõ `/undo` trong REPL.
