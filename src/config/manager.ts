@@ -244,7 +244,7 @@ export class ConfigManager {
     return preset;
   }
 
-  static resolveRole(modelOrName: string, defaultEffort?: ReasoningEffort): RoleConfig {
+    static resolveRole(modelOrName: string, defaultEffort?: ReasoningEffort): RoleConfig {
     const m = modelOrName.trim();
     const lower = m.toLowerCase();
 
@@ -252,11 +252,22 @@ export class ConfigManager {
     let baseURL: string | undefined = undefined;
     let apiKey: string | undefined = undefined;
 
-    if (lower.includes('claude')) {
+    // Anthropic / Claude
+    if (
+      lower.includes('claude') ||
+      lower.includes('opus') ||
+      lower.includes('sonnet') ||
+      lower.includes('haiku') ||
+      lower.includes('fable')
+    ) {
       provider = 'anthropic';
-    } else if (lower.includes('gemini')) {
+    }
+    // Google Gemini
+    else if (lower.includes('gemini') || lower.includes('flash') || lower.includes('gemma')) {
       provider = 'google';
-    } else if (lower.includes('deepseek')) {
+    }
+    // DeepSeek
+    else if (lower.includes('deepseek')) {
       provider = 'openai-compatible';
       if (
         lower.includes(':14b') ||
@@ -271,25 +282,40 @@ export class ConfigManager {
       } else {
         baseURL = 'https://api.deepseek.com/v1';
       }
-    } else if (lower.includes('qwen') || (lower.includes('llama') && (lower.includes(':') || lower.includes('ollama')))) {
+    }
+    // Qwen / Llama (Ollama)
+    else if (lower.includes('qwen') || (lower.includes('llama') && (lower.includes(':') || lower.includes('ollama')))) {
       provider = 'openai-compatible';
       baseURL = 'http://localhost:11434/v1';
       apiKey = 'not-needed-for-local';
-    } else if (lower.includes('gpt-oss') || lower.includes('llama') || lower.includes('groq')) {
+    }
+    // Groq
+    else if (lower.includes('gpt-oss') || lower.includes('llama') || lower.includes('groq')) {
       provider = 'openai-compatible';
       baseURL = 'https://api.groq.com/openai/v1';
-    } else if (lower.includes('mistral') || lower.includes('codestral')) {
+    }
+    // Mistral
+    else if (lower.includes('mistral') || lower.includes('codestral')) {
       provider = 'openai-compatible';
       baseURL = 'https://api.mistral.ai/v1';
-    } else if (lower.includes('/') && !lower.startsWith('http')) {
-      // OpenRouter (e.g. anthropic/claude-3.7-sonnet, deepseek/deepseek-r1)
+    }
+    // OpenRouter
+    else if (lower.includes('/') && !lower.startsWith('http')) {
       provider = 'openai-compatible';
       baseURL = 'https://openrouter.ai/api/v1';
-    } else if (lower.startsWith('gpt-') || lower.startsWith('o1') || lower.startsWith('o3') || lower.startsWith('o4') || lower.startsWith('gpt-5')) {
+    }
+    // OpenAI standard
+    else if (
+      lower.startsWith('gpt-') ||
+      lower.startsWith('o1') ||
+      lower.startsWith('o3') ||
+      lower.startsWith('o4') ||
+      lower.includes('sol') ||
+      lower.includes('terra')
+    ) {
       provider = 'openai-compatible';
       baseURL = 'https://api.openai.com/v1';
     } else {
-      // Default fallback
       provider = 'openai-compatible';
       baseURL = 'https://api.openai.com/v1';
     }

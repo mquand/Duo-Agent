@@ -41,8 +41,9 @@ export class OpenAICompatProvider implements LLMProvider {
     const isReasoningModel =
       this.model.startsWith('o1') ||
       this.model.startsWith('o3') ||
-      this.model.includes('astra') ||
+      this.model.startsWith('o4') ||
       this.model.includes('sol') ||
+      this.model.includes('terra') ||
       this.model.includes('deepseek-r1') ||
       (this.reasoningEffort && this.reasoningEffort !== 'off');
 
@@ -61,13 +62,46 @@ export class OpenAICompatProvider implements LLMProvider {
       }
     } else {
       payload.max_tokens = options?.maxTokens || 4000;
-      payload.temperature = options?.temperature ?? 0.2;
+      if (options?.temperature !== undefined) {
+        payload.temperature = options.temperature;
+      } else {
+        payload.temperature = 0.2;
+      }
     }
 
     try {
-      const response = await this.client.chat.completions.create(payload);
-      const text = response.choices[0]?.message?.content || '';
+      let response: any;
+      try {
+        response = await this.client.chat.completions.create(payload);
+      } catch (innerErr: any) {
+        const msg = (innerErr?.message || String(innerErr)).toLowerCase();
+        let retried = false;
 
+        // Auto-recovery 1: temperature not supported on reasoning models
+        if (payload.temperature !== undefined && (msg.includes('temperature') || msg.includes('unsupported parameter'))) {
+          delete payload.temperature;
+          retried = true;
+        }
+
+        // Auto-recovery 2: max_tokens vs max_completion_tokens mismatch
+        if (payload.max_tokens !== undefined && (msg.includes('max_tokens') || msg.includes('max_completion_tokens'))) {
+          payload.max_completion_tokens = payload.max_tokens;
+          delete payload.max_tokens;
+          retried = true;
+        } else if (payload.max_completion_tokens !== undefined && msg.includes('max_completion_tokens')) {
+          payload.max_tokens = payload.max_completion_tokens;
+          delete payload.max_completion_tokens;
+          retried = true;
+        }
+
+        if (retried) {
+          response = await this.client.chat.completions.create(payload);
+        } else {
+          throw innerErr;
+        }
+      }
+
+      const text = response.choices[0]?.message?.content || '';
       return {
         text,
         inputTokens: response.usage?.prompt_tokens,

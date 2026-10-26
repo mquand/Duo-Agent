@@ -19,7 +19,6 @@ export class GoogleProvider implements LLMProvider {
       this.isAuthenticated = true;
       this.authType = 'api_key';
     } else if (oauthToken) {
-      // Authenticate via OAuth access token / g2auth
       this.client = new GoogleGenAI({
         apiKey: '',
         httpOptions: {
@@ -56,8 +55,6 @@ export class GoogleProvider implements LLMProvider {
       );
     }
 
-    const systemInstruction = messages.find((m) => m.role === 'system')?.content;
-
     const budgetMap: Record<string, number> = {
       low: 1024,
       medium: 4096,
@@ -69,27 +66,54 @@ export class GoogleProvider implements LLMProvider {
     const baseOutputTokens = options?.maxTokens || 8192;
     const generationConfig: any = {
       maxOutputTokens: budget && budget > 0 ? baseOutputTokens + budget : baseOutputTokens,
-      temperature: options?.temperature ?? 0.2,
       responseMimeTypes: options?.json ? ['application/json'] : undefined,
     };
 
     if (budget !== undefined && budget > 0) {
       generationConfig.thinkingConfig = { thinkingBudget: budget };
+    } else if (options?.temperature !== undefined) {
+      generationConfig.temperature = options.temperature;
     }
 
     const nonSystem = messages.filter((m) => m.role !== 'system');
     const prompt = nonSystem.map((m) => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n');
 
     try {
-      const config: any = {
-        ...generationConfig,
-      };
+      let config: any = { ...generationConfig };
+      let result: any;
 
-      const result = await this.client.models.generateContent({
-        model: this.modelName,
-        contents: prompt,
-        config,
-      });
+      try {
+        result = await this.client.models.generateContent({
+          model: this.modelName,
+          contents: prompt,
+          config,
+        });
+      } catch (innerErr: any) {
+        const msg = (innerErr?.message || String(innerErr)).toLowerCase();
+        let retried = false;
+
+        // Auto-recovery: temperature not supported when thinking is enabled
+        if (config.temperature !== undefined && msg.includes('temperature')) {
+          delete config.temperature;
+          retried = true;
+        }
+
+        // Auto-recovery: thinkingBudget not supported on this model
+        if (config.thinkingConfig !== undefined && (msg.includes('thinking') || msg.includes('budget') || msg.includes('unsupported'))) {
+          delete config.thinkingConfig;
+          retried = true;
+        }
+
+        if (retried) {
+          result = await this.client.models.generateContent({
+            model: this.modelName,
+            contents: prompt,
+            config,
+          });
+        } else {
+          throw innerErr;
+        }
+      }
 
       const text = result.text || '';
       const usage = result.usageMetadata;
@@ -116,7 +140,7 @@ export class GoogleProvider implements LLMProvider {
       if (err.status === 404 || errMsg.includes('not_found') || errMsg.includes('no longer available')) {
         throw new Error(
           `Google Gemini model '${this.modelName}' not found or deprecated.\n` +
-          `  -> Use /model to switch to a valid model (e.g. gemini-3.8-flash, gemini-3.5-flash-lite).\n` +
+          `  -> Use /model to switch to a valid model (e.g. gemini-3.8-flash, gemini-3.5-flash-lite, gemini-2.5-flash).\n` +
           `  -> Check available models at https://ai.google.dev/gemini-api/docs/models.\n`
         );
       }
