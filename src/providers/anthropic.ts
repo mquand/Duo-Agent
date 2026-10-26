@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { spawn } from 'child_process';
 import { LLMMessage, LLMProvider, LLMResponse } from './base.js';
 import { RoleConfig, ReasoningEffort } from '../types/index.js';
 
@@ -20,6 +21,46 @@ export class AnthropicProvider implements LLMProvider {
     }
     this.model = config.model;
     this.reasoningEffort = config.reasoningEffort;
+  }
+
+  /**
+   * Execute request via local claude CLI as a robust fallback
+   */
+  private async executeViaClaudeCli(prompt: string, modelName: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const args = ['-p', '-'];
+      if (modelName) {
+        args.push('--model', modelName);
+      }
+      const child = spawn('claude', args, {
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+
+      let stdout = '';
+      let stderr = '';
+
+      child.stdout.on('data', (d) => {
+        stdout += d.toString('utf-8');
+      });
+      child.stderr.on('data', (d) => {
+        stderr += d.toString('utf-8');
+      });
+
+      child.on('close', (code) => {
+        if (code === 0 && stdout.trim().length > 0) {
+          resolve(stdout.trim());
+        } else {
+          reject(new Error(stderr.trim() || `claude CLI exited with code ${code}`));
+        }
+      });
+
+      child.on('error', (err) => {
+        reject(err);
+      });
+
+      child.stdin.write(prompt);
+      child.stdin.end();
+    });
   }
 
   async generate(
@@ -60,10 +101,8 @@ export class AnthropicProvider implements LLMProvider {
         type: 'enabled',
         budget_tokens: budget,
       };
-      // Modern Anthropic models deprecate 'temperature' when thinking is enabled or in Claude 5.x
     } else {
       requestPayload.max_tokens = options?.maxTokens || 4000;
-      // Do NOT set temperature for modern models (Claude 5.x / Opus 5.5) as Anthropic has deprecated temperature
       const isModernModel =
         this.model.includes('5-5') ||
         this.model.includes('-5') ||
@@ -80,7 +119,6 @@ export class AnthropicProvider implements LLMProvider {
         response = await this.client.messages.create(requestPayload);
       } catch (innerErr: any) {
         const innerMsg = (innerErr?.message || String(innerErr)).toLowerCase();
-        // If error is about temperature being deprecated or invalid, remove temperature and retry once
         if (requestPayload.temperature !== undefined && innerMsg.includes('temperature')) {
           delete requestPayload.temperature;
           response = await this.client.messages.create(requestPayload);
@@ -98,11 +136,35 @@ export class AnthropicProvider implements LLMProvider {
 
       return {
         text,
-        inputTokens: response.usage.input_tokens,
-        outputTokens: response.usage.output_tokens,
+        inputTokens: response.usage?.input_tokens,
+        outputTokens: response.usage?.output_tokens,
       };
     } catch (err: any) {
       const errMsg = (err.message || String(err)).toLowerCase();
+
+      // If rate limited (429) or overloaded, automatically fallback to local claude CLI
+      if (err.status === 429 || errMsg.includes('rate limit') || errMsg.includes('429') || errMsg.includes('overloaded')) {
+        try {
+          const fullPrompt = [
+            systemMessage ? `[Instructions]\n${systemMessage}\n` : '',
+            userMessages.map((m) => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n'),
+          ]
+            .filter(Boolean)
+            .join('\n');
+
+          const cliOutput = await this.executeViaClaudeCli(fullPrompt, this.model);
+          if (cliOutput && cliOutput.length > 0) {
+            return {
+              text: cliOutput,
+              inputTokens: Math.round(fullPrompt.length / 4),
+              outputTokens: Math.round(cliOutput.length / 4),
+            };
+          }
+        } catch {
+          // If fallback fails, proceed to standard error handling below
+        }
+      }
+
       if (
         errMsg.includes('could not resolve authentication method') ||
         errMsg.includes('api key') ||
