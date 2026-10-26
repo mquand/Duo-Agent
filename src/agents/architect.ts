@@ -17,6 +17,7 @@ MANDATORY PONYTAIL PRINCIPLES:
 2. REUSE: Maximize reuse of existing project helpers, libraries, and utilities.
 3. MINIMALISM: Break the objective down into the minimum required steps. Each step must have a clear, isolated objective.
 4. DAG CONCURRENCY: Explicitly declare "depends_on" between steps. Independent steps (e.g. backend vs frontend, or unrelated modules) MUST have "depends_on": [] to allow parallel execution by worker agents.
+5. LANGUAGE FIDELITY: Always formulate the "goal", "summary", "title", and "instructions" in the EXACT SAME language as the user's task objective (e.g. Vietnamese if the user asked in Vietnamese).
 
 OUTPUT FORMAT REQUIREMENTS:
 Output raw JSON ONLY (no markdown formatting, no backticks):

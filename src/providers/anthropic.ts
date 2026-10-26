@@ -28,7 +28,7 @@ export class AnthropicProvider implements LLMProvider {
    */
   private async executeViaClaudeCli(prompt: string, modelName: string): Promise<string> {
     return new Promise((resolve, reject) => {
-      const args = ['-p', '-'];
+      const args = ['--tools', '', '-p', '-'];
       if (modelName) {
         args.push('--model', modelName);
       }
