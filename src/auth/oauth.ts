@@ -188,12 +188,19 @@ export class AuthManager {
   /**
    * Check whether Google is authenticated (API Key OR OAuth/g2auth/Gemini session)
    */
+  static hasAgyCli(): boolean {
+    return fs.existsSync(path.join(os.homedir(), ".gemini", "bin", "agy"));
+  }
+
   static isGoogleAuthenticated(apiKey?: string): boolean {
     if (apiKey && apiKey.trim().length > 0 && apiKey !== 'not-needed-for-local') {
       return true;
     }
     const envKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
     if (envKey && envKey.trim().length > 0) {
+      return true;
+    }
+    if (this.hasAgyCli()) {
       return true;
     }
     return !!this.getGoogleOAuthToken();

@@ -24,6 +24,8 @@ test('ConfigManager - getMissingKeys detects unconfigured keys for cloud models'
   const origGoogleToken = AuthManager.getGoogleOAuthToken;
   const origAnthropicCreds = AuthManager.getAnthropicCredentials;
   AuthManager.getGoogleOAuthToken = () => null;
+  const origAgyCli = AuthManager.hasAgyCli;
+  AuthManager.hasAgyCli = () => false;
   AuthManager.getAnthropicCredentials = () => ({ source: 'none' });
 
   try {
@@ -49,6 +51,7 @@ test('ConfigManager - getMissingKeys detects unconfigured keys for cloud models'
   } finally {
     // Restore environment variables
       AuthManager.getGoogleOAuthToken = origGoogleToken;
+    if (origAgyCli) AuthManager.hasAgyCli = origAgyCli;
   AuthManager.getAnthropicCredentials = origAnthropicCreds;
   if (savedEnv.ANTHROPIC_API_KEY) process.env.ANTHROPIC_API_KEY = savedEnv.ANTHROPIC_API_KEY;
     if (savedEnv.GEMINI_API_KEY) process.env.GEMINI_API_KEY = savedEnv.GEMINI_API_KEY;
