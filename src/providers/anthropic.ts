@@ -60,15 +60,34 @@ export class AnthropicProvider implements LLMProvider {
         type: 'enabled',
         budget_tokens: budget,
       };
-      // Anthropic API mandates temperature=1.0 when extended thinking is enabled
-      requestPayload.temperature = 1.0;
+      // Modern Anthropic models deprecate 'temperature' when thinking is enabled or in Claude 5.x
     } else {
       requestPayload.max_tokens = options?.maxTokens || 4000;
-      requestPayload.temperature = options?.temperature ?? 0.2;
+      // Do NOT set temperature for modern models (Claude 5.x / Opus 5.5) as Anthropic has deprecated temperature
+      const isModernModel =
+        this.model.includes('5-5') ||
+        this.model.includes('-5') ||
+        this.model.includes('opus') ||
+        this.model.includes('sonnet');
+      if (options?.temperature !== undefined && !isModernModel) {
+        requestPayload.temperature = options.temperature;
+      }
     }
 
     try {
-      const response = await this.client.messages.create(requestPayload);
+      let response: any;
+      try {
+        response = await this.client.messages.create(requestPayload);
+      } catch (innerErr: any) {
+        const innerMsg = (innerErr?.message || String(innerErr)).toLowerCase();
+        // If error is about temperature being deprecated or invalid, remove temperature and retry once
+        if (requestPayload.temperature !== undefined && innerMsg.includes('temperature')) {
+          delete requestPayload.temperature;
+          response = await this.client.messages.create(requestPayload);
+        } else {
+          throw innerErr;
+        }
+      }
 
       let text = '';
       for (const block of response.content) {
